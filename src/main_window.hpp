@@ -3,6 +3,7 @@
 #pragma once
 
 #include "book.hpp"
+#include "history.hpp"
 #include "topic_view.hpp"
 
 #include <gtkmm.h>
@@ -27,7 +28,18 @@ class MainWindow : public Gtk::Window {
   void on_nav_page(int page);
   void on_jump(const Glib::ustring& href);
   void on_spine_step(int delta);
+  void on_back();
+  void on_contents_activated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn* col);
+  bool on_contents_motion(GdkEventMotion* event);
+  bool on_contents_leave(GdkEventCrossing* event);
+  bool on_contents_key(GdkEventKey* event);
+  void on_contents_cell_data(Gtk::CellRenderer* cell,
+                             const Gtk::TreeModel::const_iterator& it);
   void show_current(const std::string& fragment = {});
+  void fill_contents();
+  void highlight_contents();
+  double topic_scroll() const;
+  void set_topic_scroll(double value);
   void on_not_yet(const Glib::ustring& feature);
 
   Gtk::Box root_{Gtk::ORIENTATION_VERTICAL, 0};
@@ -54,12 +66,18 @@ class MainWindow : public Gtk::Window {
   TopicView topic_view_;
   Gtk::Statusbar status_;
   Book book_;
+  History history_;
+  bool suppress_history_ = false;
   guint status_ctx_ = 0;
 
   Glib::RefPtr<Gtk::TreeStore> contents_store_;
   Glib::RefPtr<Gtk::ListStore> index_store_;
   Glib::RefPtr<Gtk::ListStore> find_store_;
   Gtk::TreeModelColumn<Glib::ustring> col_text_;
+  Gtk::TreeModelColumn<Glib::ustring> col_href_;
+  Gtk::TreeModel::Path contents_hover_path_;
+  Gtk::TreeModel::Path contents_current_path_;
+  std::string loaded_fragment_;
 };
 
 }  // namespace readomatic

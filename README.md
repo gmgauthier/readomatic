@@ -10,9 +10,9 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M1 in tree.** File → Open… extracts an EPUB and shows the first chapter in the topic pane. Contents / Index / Find still empty (M2). Samples in `data/samples/` (git-only).
+**M2 in tree.** Open an EPUB: Contents fills from nav/NCX, `<<` `>>` walk the spine, Back goes to the previous topic. Index / Find still empty (M3). Samples in `data/samples/` (git-only).
 
-Next: **M2 — Contents + browse** (see [DEVELOPMENT.md](DEVELOPMENT.md)).
+Next: **M3 — Index + Find** (see [DEVELOPMENT.md](DEVELOPMENT.md)).
 
 | Doc | What |
 |---|---|

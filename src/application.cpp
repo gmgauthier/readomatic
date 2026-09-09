@@ -44,6 +44,8 @@ bool Application::take_instance_lock()
 void Application::on_startup()
 {
   Gtk::Application::on_startup();
+  if (auto settings = Gtk::Settings::get_default())
+    settings->property_gtk_application_prefer_dark_theme() = false;
   lock_ok_ = take_instance_lock();
 }
 

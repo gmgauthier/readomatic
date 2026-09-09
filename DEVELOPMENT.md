@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-09-09)
 
-**M1 is in the tree.** `Book` extracts the EPUB (libarchive) and reads OPF (libxml2). File → Open… loads the first readable spine document into `TopicView` (XHTML subset → `Gtk::TextView`). Close clears. Contents tree still empty (M2).
+**M2 is in the tree.** Contents from EPUB3 `nav` or NCX. Activate a row to jump. `<<` `>>` walk the spine. Back walks a history stack. Status `Title — n of m`.
 
-Next: **M2 — Contents + browse.**
+Next: **M3 — Index + Find.**
 
 ## 1. Locked decisions
 
@@ -177,9 +177,9 @@ Done when: window matches the ASCII mock; Contents / Index / Find switch pages; 
 
 Done when: Kafka and *Astounding* samples show readable text. If TextView mapping is hopeless, stop and decide WebKit **before** M2.
 
-### M2 — Contents + browse
+### M2 — Contents + browse — **in tree 2026-09-09**
 
-Fill Contents from nav/NCX. Activate a row → load that href, push Back. `<<` `>>` walk the spine. Back walks history. Status `Title — n of m`. Highlight the current Contents row when possible.
+Fill Contents from EPUB3 `nav` or NCX. Activate a row → load that href, push Back. `<<` `>>` walk the spine. Back walks history (and restores scroll). Status `Title — n of m`. Highlight the current Contents row when possible.
 
 Done when: you can open a book, jump via Contents, step `>>` through chapters, and Back returns to the previous topic.
 
@@ -209,7 +209,8 @@ Done when: `dpkg-buildpackage` produces an installable `.deb` on Trixie.
 
 ### Later (not v1)
 
-MOBI/AZW, annotation highlighter, dictionary lookup, TTS, two books at once, Calibre-style library.
+- Contents tree lines and remember expand/collapse
+- MOBI/AZW, annotation highlighter, dictionary lookup, TTS, two books at once, Calibre-style library
 
 ## 6. Tooling (Devuan Excalibur / Debian Trixie)
 

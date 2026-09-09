@@ -15,6 +15,20 @@ window.readomatic-window {
 .readomatic-nav {
   background-color: #FFFFFF;
   color: #000000;
+  font-weight: bold;
+}
+
+treeview.readomatic-nav row:hover {
+  background-color: #E2E2DC;
+}
+
+treeview.readomatic-nav row:selected {
+  background-color: #5E84B0;
+  color: #FFFFFF;
+}
+
+treeview.readomatic-nav row:selected:hover {
+  background-color: #5478A4;
 }
 
 statusbar {

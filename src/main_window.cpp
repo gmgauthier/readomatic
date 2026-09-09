@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <sstream>
 
@@ -132,9 +133,7 @@ void MainWindow::build_toolbar()
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_nav_page), 1));
   btn_find_.signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_nav_page), 2));
-  btn_back_.signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
-                 Glib::ustring("Back")));
+  btn_back_.signal_clicked().connect(sigc::mem_fun(*this, &MainWindow::on_back));
   btn_prev_.signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_spine_step), -1));
   btn_next_.signal_clicked().connect(
@@ -159,6 +158,7 @@ void MainWindow::build_body()
 {
   Gtk::TreeModel::ColumnRecord rec;
   rec.add(col_text_);
+  rec.add(col_href_);
   contents_store_ = Gtk::TreeStore::create(rec);
   index_store_ = Gtk::ListStore::create(rec);
   find_store_ = Gtk::ListStore::create(rec);
@@ -166,7 +166,28 @@ void MainWindow::build_body()
   contents_view_.set_model(contents_store_);
   contents_view_.append_column("Contents", col_text_);
   contents_view_.set_headers_visible(false);
+  contents_view_.get_selection()->set_mode(Gtk::SELECTION_NONE);
+  contents_view_.set_can_focus(true);
+  contents_view_.set_enable_search(false);
   contents_view_.get_style_context()->add_class("readomatic-nav");
+  if (auto* col = contents_view_.get_column(0)) {
+    const auto cells = col->get_cells();
+    if (!cells.empty()) {
+      if (auto* text = dynamic_cast<Gtk::CellRendererText*>(cells[0])) {
+        text->property_weight() = Pango::WEIGHT_BOLD;
+        col->set_cell_data_func(*text, sigc::mem_fun(*this, &MainWindow::on_contents_cell_data));
+      }
+    }
+  }
+  contents_view_.add_events(Gdk::POINTER_MOTION_MASK | Gdk::LEAVE_NOTIFY_MASK);
+  contents_view_.signal_motion_notify_event().connect(
+      sigc::mem_fun(*this, &MainWindow::on_contents_motion), false);
+  contents_view_.signal_leave_notify_event().connect(
+      sigc::mem_fun(*this, &MainWindow::on_contents_leave), false);
+  contents_view_.signal_key_press_event().connect(
+      sigc::mem_fun(*this, &MainWindow::on_contents_key), false);
+  contents_view_.signal_row_activated().connect(
+      sigc::mem_fun(*this, &MainWindow::on_contents_activated));
   contents_scroll_.add(contents_view_);
   contents_scroll_.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 
@@ -234,6 +255,8 @@ void MainWindow::on_open()
     return;
   }
   set_title("Read-O-Matic — " + book_.title());
+  history_.clear();
+  fill_contents();
   show_current();
 }
 
@@ -249,16 +272,197 @@ void MainWindow::show_current(const std::string& fragment)
   topic_view_.load_xhtml(xhtml, dir);
   if (!fragment.empty())
     topic_view_.scroll_to_id(fragment);
+  loaded_fragment_ = fragment;
+  if (!suppress_history_)
+    history_.push(href, fragment);
+  highlight_contents();
   char buf[160];
   std::snprintf(buf, sizeof(buf), "%s — %d of %d", book_.title().c_str(),
                 book_.spine_index() + 1, book_.spine_count());
   set_status(buf);
 }
 
+void MainWindow::fill_contents()
+{
+  contents_current_path_.clear();
+  contents_hover_path_.clear();
+  contents_store_->clear();
+  std::function<void(Gtk::TreeIter, const Book::NavNode&)> append_node;
+  append_node = [&](Gtk::TreeIter parent, const Book::NavNode& node) {
+    Gtk::TreeIter it;
+    if (parent)
+      it = contents_store_->append(parent->children());
+    else
+      it = contents_store_->append();
+    (*it)[col_text_] = node.label;
+    (*it)[col_href_] = node.href;
+    for (const auto& ch : node.children)
+      append_node(it, ch);
+  };
+  for (const auto& n : book_.nav())
+    append_node(Gtk::TreeIter(), n);
+  contents_view_.expand_all();
+}
+
+void MainWindow::on_contents_cell_data(Gtk::CellRenderer* cell,
+                                       const Gtk::TreeModel::const_iterator& it)
+{
+  if (!cell || !it)
+    return;
+  const auto path = contents_store_->get_path(it);
+  const bool current = contents_current_path_.size() > 0 && path.size() > 0 &&
+                       path == contents_current_path_;
+  const bool hover = contents_hover_path_.size() > 0 && path.size() > 0 &&
+                     path == contents_hover_path_;
+  if (current || hover) {
+    cell->property_cell_background() = "#C4C4BC";
+    cell->property_cell_background_set() = true;
+  } else {
+    cell->property_cell_background_set() = false;
+  }
+}
+
+bool MainWindow::on_contents_motion(GdkEventMotion* event)
+{
+  Gtk::TreeModel::Path path;
+  Gtk::TreeViewColumn* col = nullptr;
+  int cx = 0, cy = 0;
+  int bx = 0, by = 0;
+  contents_view_.convert_widget_to_bin_window_coords(static_cast<int>(event->x),
+                                                     static_cast<int>(event->y), bx, by);
+  if (contents_view_.get_path_at_pos(bx, by, path, col, cx, cy) && path.size() > 0) {
+    if (contents_hover_path_.size() == 0 || contents_hover_path_ != path) {
+      contents_hover_path_ = path;
+      contents_view_.queue_draw();
+    }
+  } else if (contents_hover_path_.size() > 0) {
+    contents_hover_path_.clear();
+    contents_view_.queue_draw();
+  }
+  return false;
+}
+
+bool MainWindow::on_contents_leave(GdkEventCrossing* event)
+{
+  if (event && event->detail == GDK_NOTIFY_INFERIOR)
+    return false;
+  if (contents_hover_path_.size() > 0) {
+    contents_hover_path_.clear();
+    contents_view_.queue_draw();
+  }
+  return false;
+}
+
+void MainWindow::highlight_contents()
+{
+  if (!book_.is_open())
+    return;
+  const std::string cur_file = book_.resolve(book_.current_href());
+  Gtk::TreeModel::Path exact;
+  Gtk::TreeModel::Path file_only;
+  std::function<void(const Gtk::TreeNodeChildren&)> walk;
+  walk = [&](const Gtk::TreeNodeChildren& kids) {
+    for (auto& row : kids) {
+      const std::string h = row.get_value(col_href_);
+      if (!h.empty()) {
+        std::string file = h;
+        std::string frag;
+        const auto hash = h.find('#');
+        if (hash != std::string::npos) {
+          file = h.substr(0, hash);
+          frag = h.substr(hash + 1);
+        }
+        if (book_.resolve(file) == cur_file) {
+          auto path = contents_store_->get_path(row);
+          if (file_only.size() == 0)
+            file_only = path;
+          if (!loaded_fragment_.empty() && frag == loaded_fragment_)
+            exact = path;
+        }
+      }
+      walk(row.children());
+    }
+  };
+  walk(contents_store_->children());
+  Gtk::TreeModel::Path chosen = exact.size() > 0 ? exact : file_only;
+  if (chosen.size() == 0)
+    return;
+  contents_view_.expand_to_path(chosen);
+  contents_current_path_ = chosen;
+  contents_view_.set_cursor(chosen);
+  contents_view_.scroll_to_row(chosen);
+  contents_view_.queue_draw();
+}
+
+double MainWindow::topic_scroll() const
+{
+  auto adj = topic_scroll_.get_vadjustment();
+  return adj ? adj->get_value() : 0;
+}
+
+void MainWindow::set_topic_scroll(double value)
+{
+  auto adj = topic_scroll_.get_vadjustment();
+  if (adj)
+    adj->set_value(value);
+}
+
+void MainWindow::on_contents_activated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn*)
+{
+  auto it = contents_store_->get_iter(path);
+  if (!it)
+    return;
+  const Glib::ustring href = (*it)[col_href_];
+  if (href.empty())
+    return;
+  history_.update_scroll(topic_scroll());
+  on_jump(href);
+}
+
+bool MainWindow::on_contents_key(GdkEventKey* event)
+{
+  if (!event)
+    return false;
+  if (event->keyval != GDK_KEY_Return && event->keyval != GDK_KEY_KP_Enter &&
+      event->keyval != GDK_KEY_space)
+    return false;
+  Gtk::TreeModel::Path path;
+  Gtk::TreeViewColumn* col = nullptr;
+  contents_view_.get_cursor(path, col);
+  if (path.size() == 0)
+    return false;
+  on_contents_activated(path, col);
+  return true;
+}
+
+void MainWindow::on_back()
+{
+  if (!book_.is_open())
+    return;
+  history_.update_scroll(topic_scroll());
+  History::Entry e;
+  if (!history_.back(e)) {
+    set_status("No previous topic.");
+    return;
+  }
+  suppress_history_ = true;
+  Glib::ustring href = e.href;
+  if (!e.fragment.empty())
+    href += "#" + e.fragment;
+  on_jump(href);
+  suppress_history_ = false;
+  const double scroll = e.scroll;
+  Glib::signal_idle().connect([this, scroll]() {
+    set_topic_scroll(scroll);
+    return false;
+  });
+}
+
 void MainWindow::on_spine_step(int delta)
 {
   if (!book_.is_open())
     return;
+  history_.update_scroll(topic_scroll());
   if (!book_.advance_spine(delta)) {
     set_status(delta > 0 ? "End of book." : "Start of book.");
     return;
@@ -323,6 +527,7 @@ void MainWindow::on_jump(const Glib::ustring& href)
 void MainWindow::on_close_book()
 {
   book_.close();
+  history_.clear();
   contents_store_->clear();
   index_store_->clear();
   find_store_->clear();

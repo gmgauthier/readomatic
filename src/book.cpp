@@ -119,6 +119,9 @@ void Book::close()
   title_.clear();
   manifest_.clear();
   spine_.clear();
+  nav_.clear();
+  nav_href_.clear();
+  ncx_href_.clear();
   spine_index_ = 0;
   error_.clear();
 }
@@ -227,6 +230,10 @@ bool Book::parse_opf()
     it.properties = node_prop(n, "properties");
     if (!it.id.empty())
       manifest_[it.id] = it;
+    if (it.properties.find("nav") != std::string::npos)
+      nav_href_ = it.href;
+    if (it.media_type.find("ncx") != std::string::npos)
+      ncx_href_ = it.href;
   }
 
   xmlNode* spine = find_child(package, "spine");
@@ -247,6 +254,75 @@ bool Book::parse_opf()
   return true;
 }
 
+namespace {
+
+void walk_nav_ol(xmlNode* ol, std::vector<Book::NavNode>& out)
+{
+  for (xmlNode* li = ol ? ol->children : nullptr; li; li = li->next) {
+    if (li->type != XML_ELEMENT_NODE || node_name(li) != "li")
+      continue;
+    Book::NavNode node;
+    xmlNode* nested = nullptr;
+    for (xmlNode* c = li->children; c; c = c->next) {
+      if (c->type != XML_ELEMENT_NODE)
+        continue;
+      const std::string nm = node_name(c);
+      if (nm == "a" || nm == "span") {
+        if (node.label.empty())
+          node.label = node_text(c);
+        if (nm == "a" && node.href.empty())
+          node.href = node_prop(c, "href");
+      } else if (nm == "ol") {
+        nested = c;
+      }
+    }
+    if (nested)
+      walk_nav_ol(nested, node.children);
+    if (!node.label.empty() || !node.href.empty())
+      out.push_back(std::move(node));
+  }
+}
+
+void walk_nav_point(xmlNode* parent, std::vector<Book::NavNode>& out)
+{
+  for (xmlNode* n = parent ? parent->children : nullptr; n; n = n->next) {
+    if (n->type != XML_ELEMENT_NODE || node_name(n) != "navPoint")
+      continue;
+    Book::NavNode node;
+    if (xmlNode* label = find_desc(n, "navLabel"))
+      node.label = node_text(label);
+    if (xmlNode* content = find_child(n, "content"))
+      node.href = node_prop(content, "src");
+    walk_nav_point(n, node.children);
+    out.push_back(std::move(node));
+  }
+}
+
+}  // namespace
+
+bool Book::parse_nav()
+{
+  nav_.clear();
+  const std::string href = !nav_href_.empty() ? nav_href_ : ncx_href_;
+  if (href.empty())
+    return true;
+  const std::string path = resolve(href);
+  if (path.empty() || !Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR))
+    return true;
+  xmlDoc* doc = xmlReadFile(path.c_str(), nullptr, XML_PARSE_NONET | XML_PARSE_NOBLANKS | XML_PARSE_RECOVER);
+  if (!doc)
+    return true;
+  xmlNode* root = xmlDocGetRootElement(doc);
+  if (xmlNode* nav = find_desc(root, "nav")) {
+    if (xmlNode* ol = find_desc(nav, "ol"))
+      walk_nav_ol(ol, nav_);
+  } else if (xmlNode* map = find_desc(root, "navMap")) {
+    walk_nav_point(map, nav_);
+  }
+  xmlFreeDoc(doc);
+  return true;
+}
+
 bool Book::open(const std::string& path)
 {
   close();
@@ -258,6 +334,7 @@ bool Book::open(const std::string& path)
     close();
     return false;
   }
+  parse_nav();
   const std::string start = start_href();
   for (int i = 0; i < spine_count(); ++i) {
     if (spine_[static_cast<size_t>(i)] == start) {

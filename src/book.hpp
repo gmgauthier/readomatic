@@ -17,6 +17,12 @@ class Book {
     std::string properties;
   };
 
+  struct NavNode {
+    std::string label;
+    std::string href;
+    std::vector<NavNode> children;
+  };
+
   Book() = default;
   ~Book() { close(); }
   Book(const Book&) = delete;
@@ -42,11 +48,13 @@ class Book {
   std::string start_href() const;                     // first readable spine item
   bool advance_spine(int delta);                      // skip cover wrappers
   std::string href_for_id(const std::string& id) const;
+  const std::vector<NavNode>& nav() const { return nav_; }
 
  private:
   bool extract_zip(const std::string& path);
   bool parse_container();
   bool parse_opf();
+  bool parse_nav();
   void set_error(const std::string& msg);
   bool skip_spine_href(const std::string& href) const;
 
@@ -57,6 +65,9 @@ class Book {
   std::string title_;
   std::map<std::string, Item> manifest_;
   std::vector<std::string> spine_; // hrefs
+  std::vector<NavNode> nav_;
+  std::string nav_href_;
+  std::string ncx_href_;
   int spine_index_ = 0;
 };
 
