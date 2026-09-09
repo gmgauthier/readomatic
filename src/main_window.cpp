@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include <glibmm/fileutils.h>
+#include <glibmm/miscutils.h>
 
 namespace readomatic {
 namespace {
@@ -76,8 +77,10 @@ bool nav_leave(Gtk::TreeView& view, Gtk::TreeModel::Path& hover, GdkEventCrossin
 
 MainWindow::MainWindow()
 {
+  settings_.load();
   set_title("Read-O-Matic");
-  set_default_size(800, 560);
+  set_default_size(settings_.window_w > 0 ? settings_.window_w : 800,
+                   settings_.window_h > 0 ? settings_.window_h : 560);
   set_border_width(0);
   get_style_context()->add_class("readomatic-window");
 
@@ -86,11 +89,21 @@ MainWindow::MainWindow()
   build_toolbar();
   build_body();
 
+  if (settings_.window_w > 0 && settings_.window_h > 0)
+    resize(settings_.window_w, settings_.window_h);
+  if (settings_.window_x >= 0 && settings_.window_y >= 0)
+    move(settings_.window_x, settings_.window_y);
+  if (settings_.paned > 40)
+    paned_.set_position(settings_.paned);
+
   status_ctx_ = status_.get_context_id("main");
   set_status("No book open.");
+  rebuild_recent();
+  rebuild_bookmarks();
 
   add(root_);
   show_all();
+  signal_hide().connect(sigc::mem_fun(*this, &MainWindow::persist));
 }
 
 void MainWindow::load_css()
@@ -120,6 +133,9 @@ void MainWindow::build_menu()
 
   auto* file = Gtk::manage(new Gtk::Menu());
   add_item(*file, "_Open…", sigc::mem_fun(*this, &MainWindow::on_open));
+  auto* recent_item = Gtk::manage(new Gtk::MenuItem("Open _Recent", true));
+  recent_item->set_submenu(recent_menu_);
+  file->append(*recent_item);
   add_item(*file, "_Close", sigc::mem_fun(*this, &MainWindow::on_close_book));
   file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
   add_item(*file, "_Print…",
@@ -135,11 +151,7 @@ void MainWindow::build_menu()
                       Glib::ustring("Copy")));
   add_menu("_Edit", *edit);
 
-  auto* bookmark = Gtk::manage(new Gtk::Menu());
-  add_item(*bookmark, "_Define…",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
-                      Glib::ustring("Bookmark")));
-  add_menu("_Bookmark", *bookmark);
+  add_menu("_Bookmark", bookmark_menu_);
 
   auto* options = Gtk::manage(new Gtk::Menu());
   add_item(*options, "_Font…",
@@ -198,6 +210,9 @@ void MainWindow::build_toolbar()
   toolbar_.pack_start(btn_prev_, Gtk::PACK_SHRINK);
   toolbar_.pack_start(btn_next_, Gtk::PACK_SHRINK);
   toolbar_.pack_start(btn_print_, Gtk::PACK_SHRINK);
+  btn_library_.set_tooltip_text("coming soon");
+  btn_library_.signal_clicked().connect(sigc::mem_fun(*this, &MainWindow::on_library));
+  toolbar_.pack_end(btn_library_, Gtk::PACK_SHRINK);
   root_.pack_start(toolbar_, Gtk::PACK_SHRINK);
 }
 
@@ -419,8 +434,20 @@ void MainWindow::on_open()
   dlg.set_current_folder(std::string(SOURCE_ROOT) + "/data/samples");
   if (dlg.run() != Gtk::RESPONSE_ACCEPT)
     return;
-  if (!book_.open(dlg.get_filename())) {
+  open_path(dlg.get_filename());
+}
+
+void MainWindow::open_path(const std::string& path)
+{
+  persist_book();
+  if (!Glib::file_test(path, Glib::FILE_TEST_EXISTS)) {
+    set_status("File not found.");
+    rebuild_recent();
+    return;
+  }
+  if (!book_.open(path)) {
     set_status(book_.error().empty() ? "Could not open EPUB." : book_.error());
+    rebuild_bookmarks();
     return;
   }
   set_title("Read-O-Matic — " + book_.title());
@@ -430,9 +457,33 @@ void MainWindow::on_open()
   find_hover_path_.clear();
   last_find_query_.clear();
   find_entry_.set_text("");
+  settings_.touch_recent(book_.source_path(), book_.title());
   fill_contents();
   fill_index();
-  show_current();
+  const std::string key = book_key();
+  const auto it = settings_.books.find(key);
+  std::string restore_href;
+  std::string restore_frag;
+  double restore_scroll = 0;
+  if (it != settings_.books.end()) {
+    restore_href = it->second.href;
+    restore_frag = it->second.fragment;
+    restore_scroll = it->second.scroll;
+  }
+  if (!restore_href.empty() && book_.select_href(restore_href))
+    show_current(restore_frag);
+  else
+    show_current();
+  if (restore_frag.empty() && restore_scroll > 0) {
+    const double scroll = restore_scroll;
+    Glib::signal_idle().connect([this, scroll]() {
+      set_topic_scroll(scroll);
+      return false;
+    });
+  }
+  rebuild_recent();
+  rebuild_bookmarks();
+  persist();
   Glib::signal_idle().connect(
       [this]() {
         snap_nav_left(contents_view_, contents_scroll_);
@@ -800,6 +851,8 @@ void MainWindow::on_jump(const Glib::ustring& href)
 
 void MainWindow::on_close_book()
 {
+  persist_book();
+  persist();
   book_.close();
   history_.clear();
   contents_store_->clear();
@@ -815,10 +868,12 @@ void MainWindow::on_close_book()
       "Contents, Index, and Find will list the book. This pane shows the topic.");
   set_title("Read-O-Matic");
   set_status("No book open.");
+  rebuild_bookmarks();
 }
 
 void MainWindow::on_quit()
 {
+  persist();
   hide();
 }
 
@@ -844,6 +899,146 @@ void MainWindow::on_nav_page(int page)
 void MainWindow::on_not_yet(const Glib::ustring& feature)
 {
   set_status(feature + " arrives after this stub.");
+}
+
+std::string MainWindow::book_key() const
+{
+  if (!book_.is_open())
+    return {};
+  const std::string id =
+      book_.identifier().empty() ? book_.source_path() : book_.identifier();
+  return Settings::key_for(id);
+}
+
+void MainWindow::persist_book()
+{
+  if (!book_.is_open())
+    return;
+  const std::string key = book_key();
+  if (key.empty())
+    return;
+  auto& rec = settings_.book(key);
+  rec.path = book_.source_path();
+  rec.title = book_.title();
+  rec.href = book_.current_href();
+  rec.fragment = loaded_fragment_;
+  rec.scroll = topic_scroll();
+  settings_.touch_recent(rec.path, rec.title);
+}
+
+void MainWindow::persist()
+{
+  persist_book();
+  int x = 0, y = 0, w = 0, h = 0;
+  get_position(x, y);
+  get_size(w, h);
+  settings_.window_x = x;
+  settings_.window_y = y;
+  settings_.window_w = w;
+  settings_.window_h = h;
+  settings_.paned = paned_.get_position();
+  settings_.save();
+}
+
+void MainWindow::rebuild_recent()
+{
+  for (auto* w : recent_menu_.get_children())
+    recent_menu_.remove(*w);
+  bool any = false;
+  for (const auto& r : settings_.recent) {
+    if (!Glib::file_test(r.path, Glib::FILE_TEST_EXISTS))
+      continue;
+    const Glib::ustring label = r.title.empty() ? Glib::path_get_basename(r.path) : r.title;
+    auto* item = Gtk::manage(new Gtk::MenuItem(label));
+    const std::string path = r.path;
+    item->signal_activate().connect([this, path]() { open_path(path); });
+    recent_menu_.append(*item);
+    any = true;
+  }
+  if (!any) {
+    auto* empty = Gtk::manage(new Gtk::MenuItem("(empty)"));
+    empty->set_sensitive(false);
+    recent_menu_.append(*empty);
+  }
+  recent_menu_.show_all();
+}
+
+void MainWindow::rebuild_bookmarks()
+{
+  for (auto* w : bookmark_menu_.get_children())
+    bookmark_menu_.remove(*w);
+  auto* def = add_item(bookmark_menu_, "_Define…",
+                       sigc::mem_fun(*this, &MainWindow::on_define_bookmark));
+  def->set_sensitive(book_.is_open());
+  if (book_.is_open()) {
+    const auto& rec = settings_.book(book_key());
+    if (!rec.bookmarks.empty()) {
+      bookmark_menu_.append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
+      for (const auto& m : rec.bookmarks) {
+        auto* item = Gtk::manage(new Gtk::MenuItem(m.label));
+        std::string jump = m.href;
+        if (!m.fragment.empty())
+          jump += "#" + m.fragment;
+        item->signal_activate().connect([this, jump]() { on_jump(jump); });
+        bookmark_menu_.append(*item);
+      }
+    }
+  }
+  bookmark_menu_.show_all();
+}
+
+void MainWindow::on_define_bookmark()
+{
+  if (!book_.is_open())
+    return;
+  Glib::ustring def = book_.title();
+  if (contents_current_path_.size() > 0) {
+    auto it = contents_store_->get_iter(contents_current_path_);
+    if (it)
+      def = (*it)[col_text_];
+  }
+  Gtk::Dialog dlg("Define Bookmark", *this, true);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_OK", Gtk::RESPONSE_OK);
+  dlg.set_default_response(Gtk::RESPONSE_OK);
+  Gtk::Entry entry;
+  entry.set_text(def);
+  entry.set_activates_default(true);
+  entry.set_hexpand(true);
+  dlg.get_content_area()->set_border_width(8);
+  dlg.get_content_area()->pack_start(entry, Gtk::PACK_SHRINK);
+  dlg.show_all();
+  if (dlg.run() != Gtk::RESPONSE_OK)
+    return;
+  const Glib::ustring label = entry.get_text();
+  if (label.empty())
+    return;
+  Bookmark b;
+  b.label = label;
+  b.href = book_.current_href();
+  b.fragment = loaded_fragment_;
+  auto& rec = settings_.book(book_key());
+  rec.path = book_.source_path();
+  rec.title = book_.title();
+  bool replaced = false;
+  for (auto& existing : rec.bookmarks) {
+    if (existing.href == b.href && existing.fragment == b.fragment) {
+      existing.label = b.label;
+      replaced = true;
+      break;
+    }
+  }
+  if (!replaced)
+    rec.bookmarks.push_back(std::move(b));
+  persist();
+  rebuild_bookmarks();
+  set_status("Bookmark saved.");
+}
+
+void MainWindow::on_library()
+{
+  btn_library_.trigger_tooltip_query();
+  set_status("Library — coming soon.");
 }
 
 }  // namespace readomatic

@@ -292,6 +292,8 @@ void Book::close()
     fs::remove_all(extract_dir_, ec);
   }
   extract_dir_.clear();
+  source_path_.clear();
+  identifier_.clear();
   opf_path_.clear();
   opf_dir_.clear();
   title_.clear();
@@ -396,6 +398,8 @@ bool Book::parse_opf()
     title_ = node_text(title);
   if (title_.empty())
     title_ = "Untitled";
+  if (xmlNode* ident = find_desc(metadata, "identifier"))
+    identifier_ = node_text(ident);
 
   xmlNode* manifest = find_child(package, "manifest");
   for (xmlNode* n = manifest ? manifest->children : nullptr; n; n = n->next) {
@@ -504,6 +508,9 @@ bool Book::parse_nav()
 bool Book::open(const std::string& path)
 {
   close();
+  gchar* canon = g_canonicalize_filename(path.c_str(), nullptr);
+  source_path_ = canon ? canon : path;
+  g_free(canon);
   if (!extract_zip(path)) {
     close();
     return false;
@@ -513,6 +520,8 @@ bool Book::open(const std::string& path)
     return false;
   }
   parse_nav();
+  if (identifier_.empty())
+    identifier_ = source_path_;
   const std::string start = start_href();
   for (int i = 0; i < spine_count(); ++i) {
     if (spine_[static_cast<size_t>(i)] == start) {
@@ -536,6 +545,28 @@ bool Book::set_spine_index(int i)
     return false;
   spine_index_ = i;
   return true;
+}
+
+bool Book::select_href(const std::string& href)
+{
+  std::string file = href;
+  const auto hash = file.find('#');
+  if (hash != std::string::npos)
+    file = file.substr(0, hash);
+  if (file.empty())
+    return false;
+  for (int i = 0; i < spine_count(); ++i) {
+    if (spine_href(i) == file)
+      return set_spine_index(i);
+  }
+  const std::string want = resolve(file);
+  if (want.empty())
+    return false;
+  for (int i = 0; i < spine_count(); ++i) {
+    if (resolve(spine_href(i)) == want)
+      return set_spine_index(i);
+  }
+  return false;
 }
 
 std::string Book::current_href() const

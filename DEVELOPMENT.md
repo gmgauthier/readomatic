@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-09-09)
 
-**M3 is in the tree.** Index lists spine headings (`h1`–`h3`). Find searches this book, lists excerpts, and activating a hit selects the match.
+**M4 is in the tree.** Bookmarks (Define + menu), File → Open Recent, last topic/window restored from `~/.config/readomatic/readomatic.ini`. Toolbar **Library** is a stub (tooltip “coming soon”).
 
-Next: **M4 — Bookmarks + last topic.**
+Next: **M5 — Print + font + keys.**
 
 ## 1. Locked decisions
 
@@ -93,7 +93,7 @@ readomatic
 │   ├── book.{hpp,cpp}           zip + OPF + spine
 │   ├── topic_view.{hpp,cpp}     XHTML → TextView tags
 │   ├── history.hpp              M2: Back stack
-│   └── settings.{hpp,cpp}       M4: ini                       (not in tree yet)
+│   └── settings.{hpp,cpp}       M4: ini, recent, bookmarks
 ├── meson.build                 version 0.1.0
 ├── README.md
 └── DEVELOPMENT.md
@@ -189,9 +189,11 @@ Index: spine titles plus headings. Find: case-insensitive search over uncompress
 
 Done when: Find “whale” in a Gutenberg book lists hits and a click lands in the topic.
 
-### M4 — Bookmarks + last topic
+### M4 — Bookmarks + last topic — **in tree 2026-09-10**
 
 Bookmark → Define stores href + label for this book. Bookmark menu lists them. On open, restore last href (and window) from ini if that file still exists. File → Open Recent.
+
+Toolbar **Library** (far right): stub. Tooltip and status “coming soon”. The real Library is a later window (see Later).
 
 Done when: quit mid-chapter, reopen the same EPUB, land on that topic.
 
@@ -209,8 +211,9 @@ Done when: `dpkg-buildpackage` produces an installable `.deb` on Trixie.
 
 ### Later (not v1)
 
+- **Library window** — separate UI, not a notebook tab. Reads `[library] dir` from the ini (a default books folder), shows cover thumbnails. Select a book → open it in the reader. Organize: groups, tags, add, delete. M4 only ships the toolbar button.
 - Contents tree lines and remember expand/collapse
-- MOBI/AZW, annotation highlighter, dictionary lookup, TTS, two books at once, Calibre-style library
+- MOBI/AZW, annotation highlighter, dictionary lookup, TTS, two books at once
 
 ## 6. Tooling (Devuan Excalibur / Debian Trixie)
 

@@ -10,9 +10,9 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M3 in tree.** Open an EPUB: Contents, Index (headings), and Find (this book) all work. Samples in `data/samples/` (git-only).
+**M4 in tree.** Bookmarks, Open Recent, and last topic restore. Toolbar **Library** is a stub (coming soon). Samples in `data/samples/` (git-only).
 
-Next: **M4 — Bookmarks + last topic** (see [DEVELOPMENT.md](DEVELOPMENT.md)).
+Next: **M5 — Print + font + keys** (see [DEVELOPMENT.md](DEVELOPMENT.md)).
 
 | Doc | What |
 |---|---|

@@ -37,6 +37,7 @@ executable(
   'src/about_dialog.cpp',
   'src/book.cpp',
   'src/topic_view.cpp',
+  'src/settings.cpp',
   include_directories: inc,
   dependencies: [gtkmm, libarchive, libxml],
   install: true,

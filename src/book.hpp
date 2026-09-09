@@ -47,11 +47,14 @@ class Book {
   const std::string& error() const { return error_; }
   const std::string& extract_dir() const { return extract_dir_; }
   const std::string& opf_dir() const { return opf_dir_; }
+  const std::string& source_path() const { return source_path_; }
+  const std::string& identifier() const { return identifier_; }
 
   int spine_count() const { return static_cast<int>(spine_.size()); }
   int spine_index() const { return spine_index_; }
   std::string spine_href(int i) const;
   bool set_spine_index(int i);
+  bool select_href(const std::string& href);
   std::string current_href() const;
 
   std::string load_document(const std::string& href) const;
@@ -72,6 +75,8 @@ class Book {
   bool skip_spine_href(const std::string& href) const;
 
   std::string error_;
+  std::string source_path_;
+  std::string identifier_;
   std::string extract_dir_;
   std::string opf_path_;
   std::string opf_dir_;

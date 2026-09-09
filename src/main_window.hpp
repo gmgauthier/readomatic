@@ -4,6 +4,7 @@
 
 #include "book.hpp"
 #include "history.hpp"
+#include "settings.hpp"
 #include "topic_view.hpp"
 
 #include <gtkmm.h>
@@ -22,9 +23,17 @@ class MainWindow : public Gtk::Window {
   void set_status(const Glib::ustring& text);
 
   void on_open();
+  void open_path(const std::string& path);
   void on_close_book();
   void on_quit();
   void on_about();
+  void on_define_bookmark();
+  void on_library();
+  void persist();
+  void persist_book();
+  void rebuild_recent();
+  void rebuild_bookmarks();
+  std::string book_key() const;
   void on_nav_page(int page);
   void on_jump(const Glib::ustring& href);
   void on_spine_step(int delta);
@@ -66,6 +75,9 @@ class MainWindow : public Gtk::Window {
   Gtk::Button btn_prev_{"<<"};
   Gtk::Button btn_next_{">>"};
   Gtk::Button btn_print_{"Print"};
+  Gtk::Button btn_library_{"Library"};
+  Gtk::Menu recent_menu_;
+  Gtk::Menu bookmark_menu_;
   Gtk::Paned paned_{Gtk::ORIENTATION_HORIZONTAL};
   Gtk::Notebook nav_;
   Gtk::ScrolledWindow contents_scroll_;
@@ -81,6 +93,7 @@ class MainWindow : public Gtk::Window {
   Gtk::Statusbar status_;
   Book book_;
   History history_;
+  Settings settings_;
   bool suppress_history_ = false;
   guint status_ctx_ = 0;
 
