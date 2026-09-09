@@ -16,6 +16,8 @@ window.readomatic-window {
   background-color: #FFFFFF;
   color: #000000;
   font-weight: bold;
+  padding: 0;
+  -GtkTreeView-horizontal-separator: 0;
 }
 
 treeview.readomatic-nav row:hover {

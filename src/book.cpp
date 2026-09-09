@@ -206,12 +206,37 @@ std::string fallback_title(const std::string& href)
   return h.empty() ? std::string("Topic") : h;
 }
 
+bool utf8_cont(unsigned char c)
+{
+  return (c & 0xC0) == 0x80;
+}
+
+/* Byte index of the character that contains i, or s.size() if i is at/after end. */
+size_t utf8_floor(const std::string& s, size_t i)
+{
+  if (i >= s.size())
+    return s.size();
+  while (i > 0 && utf8_cont(static_cast<unsigned char>(s[i])))
+    --i;
+  return i;
+}
+
+/* First byte of the next character at or after i (exclusive-end friendly). */
+size_t utf8_ceil(const std::string& s, size_t i)
+{
+  if (i >= s.size())
+    return s.size();
+  while (i < s.size() && utf8_cont(static_cast<unsigned char>(s[i])))
+    ++i;
+  return i;
+}
+
 std::string excerpt_at(const std::string& text, size_t pos, size_t qlen)
 {
   const size_t before = 36;
   const size_t after = 40;
-  const size_t start = pos > before ? pos - before : 0;
-  size_t end = pos + qlen + after;
+  const size_t start = utf8_floor(text, pos > before ? pos - before : 0);
+  size_t end = utf8_ceil(text, pos + qlen + after);
   if (end > text.size())
     end = text.size();
   std::string out;
@@ -220,7 +245,13 @@ std::string excerpt_at(const std::string& text, size_t pos, size_t qlen)
   out += text.substr(start, end - start);
   if (end < text.size())
     out += "…";
-  return squeeze_ws(out);
+  out = squeeze_ws(out);
+  if (!g_utf8_validate(out.c_str(), static_cast<gssize>(out.size()), nullptr)) {
+    gchar* v = g_utf8_make_valid(out.c_str(), static_cast<gssize>(out.size()));
+    out = v ? v : std::string();
+    g_free(v);
+  }
+  return out;
 }
 
 std::string dirname_of(const std::string& path)

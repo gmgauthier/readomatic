@@ -203,14 +203,77 @@ void MainWindow::build_toolbar()
 
 void MainWindow::style_list_column(Gtk::TreeView& view)
 {
+  view.set_hscroll_policy(Gtk::SCROLL_MINIMUM);
   if (auto* col = view.get_column(0)) {
+    col->set_sizing(Gtk::TREE_VIEW_COLUMN_FIXED);
     col->set_expand(true);
     const auto cells = col->get_cells();
     if (!cells.empty()) {
-      if (auto* text = dynamic_cast<Gtk::CellRendererText*>(cells[0]))
+      if (auto* text = dynamic_cast<Gtk::CellRendererText*>(cells[0])) {
         text->property_ellipsize() = Pango::ELLIPSIZE_END;
+        text->property_xalign() = 0.0;
+        text->property_xpad() = 6;
+      }
     }
   }
+}
+
+void MainWindow::snap_nav_left(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll)
+{
+  auto snap = [](const Glib::RefPtr<Gtk::Adjustment>& adj) {
+    if (adj && adj->get_value() != adj->get_lower())
+      adj->set_value(adj->get_lower());
+  };
+  snap(scroll.get_hadjustment());
+  snap(view.get_hadjustment());
+}
+
+void MainWindow::keep_nav_left(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll)
+{
+  auto* v = &view;
+  auto* s = &scroll;
+  auto hook = [this, v, s]() {
+    snap_nav_left(*v, *s);
+    auto attach = [this, v, s](const Glib::RefPtr<Gtk::Adjustment>& adj) {
+      if (!adj)
+        return;
+      adj->signal_value_changed().connect([this, v, s]() {
+        snap_nav_left(*v, *s);
+      });
+    };
+    attach(s->get_hadjustment());
+    attach(v->get_hadjustment());
+  };
+  if (view.get_realized())
+    hook();
+  view.signal_realize().connect(hook);
+}
+
+void MainWindow::scroll_nav_vertically(Gtk::TreeView& view, const Gtk::TreeModel::Path& path)
+{
+  auto* col = view.get_column(0);
+  if (!col || path.empty())
+    return;
+  Gdk::Rectangle cell;
+  view.get_background_area(path, *col, cell);
+  auto v = view.get_vadjustment();
+  if (!v)
+    return;
+  const double top = cell.get_y();
+  const double bottom = top + cell.get_height();
+  const double vis_top = v->get_value();
+  const double vis_bot = vis_top + v->get_page_size();
+  if (top < vis_top)
+    v->set_value(top);
+  else if (bottom > vis_bot)
+    v->set_value(bottom - v->get_page_size());
+}
+
+void MainWindow::relayout_nav(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll)
+{
+  view.queue_resize();
+  scroll.queue_resize();
+  snap_nav_left(view, scroll);
 }
 
 void MainWindow::build_body()
@@ -230,6 +293,7 @@ void MainWindow::build_body()
   contents_view_.set_can_focus(true);
   contents_view_.set_enable_search(false);
   contents_view_.get_style_context()->add_class("readomatic-nav");
+  style_list_column(contents_view_);
   if (auto* col = contents_view_.get_column(0)) {
     const auto cells = col->get_cells();
     if (!cells.empty()) {
@@ -249,11 +313,14 @@ void MainWindow::build_body()
   contents_view_.signal_row_activated().connect(
       sigc::mem_fun(*this, &MainWindow::on_contents_activated));
   contents_scroll_.add(contents_view_);
-  contents_scroll_.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+  contents_scroll_.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+  contents_scroll_.set_margin_start(4);
+  keep_nav_left(contents_view_, contents_scroll_);
 
   index_view_.set_model(index_store_);
   index_view_.append_column("Index", col_text_);
   index_view_.set_headers_visible(false);
+  index_view_.set_show_expanders(false);
   index_view_.set_activate_on_single_click(true);
   index_view_.set_enable_search(true);
   index_view_.get_style_context()->add_class("readomatic-nav");
@@ -261,19 +328,20 @@ void MainWindow::build_body()
   index_view_.signal_row_activated().connect(
       sigc::mem_fun(*this, &MainWindow::on_index_activated));
   index_scroll_.add(index_view_);
-  index_scroll_.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+  index_scroll_.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+  index_scroll_.set_margin_start(4);
+  keep_nav_left(index_view_, index_scroll_);
 
   find_entry_.set_placeholder_text("Find in this book…");
   find_entry_.signal_activate().connect(sigc::mem_fun(*this, &MainWindow::on_find));
   auto* find_go = Gtk::manage(new Gtk::Button("Find"));
   find_go->signal_clicked().connect(sigc::mem_fun(*this, &MainWindow::on_find));
-  auto* find_row = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 4));
-  find_row->pack_start(find_entry_, Gtk::PACK_EXPAND_WIDGET);
-  find_row->pack_start(*find_go, Gtk::PACK_SHRINK);
+  find_go->set_valign(Gtk::ALIGN_START);
 
   find_view_.set_model(find_store_);
   find_view_.append_column("Find", col_text_);
   find_view_.set_headers_visible(false);
+  find_view_.set_show_expanders(false);
   find_view_.get_selection()->set_mode(Gtk::SELECTION_NONE);
   find_view_.set_can_focus(true);
   find_view_.set_activate_on_single_click(true);
@@ -297,10 +365,17 @@ void MainWindow::build_body()
   find_view_.signal_row_activated().connect(
       sigc::mem_fun(*this, &MainWindow::on_find_activated));
   find_scroll_.add(find_view_);
-  find_scroll_.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+  find_scroll_.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+  keep_nav_left(find_view_, find_scroll_);
+
+  auto* find_left = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_VERTICAL, 4));
+  find_left->pack_start(find_entry_, Gtk::PACK_SHRINK);
+  find_left->pack_start(find_scroll_, Gtk::PACK_EXPAND_WIDGET);
+  auto* find_row = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 4));
+  find_row->pack_start(*find_left, Gtk::PACK_EXPAND_WIDGET);
+  find_row->pack_start(*find_go, Gtk::PACK_SHRINK);
   find_box_.set_border_width(4);
-  find_box_.pack_start(*find_row, Gtk::PACK_SHRINK);
-  find_box_.pack_start(find_scroll_, Gtk::PACK_EXPAND_WIDGET);
+  find_box_.pack_start(*find_row, Gtk::PACK_EXPAND_WIDGET);
 
   nav_.set_show_tabs(false);
   nav_.set_show_border(false);
@@ -358,6 +433,13 @@ void MainWindow::on_open()
   fill_contents();
   fill_index();
   show_current();
+  Glib::signal_idle().connect(
+      [this]() {
+        snap_nav_left(contents_view_, contents_scroll_);
+        contents_view_.queue_resize();
+        return false;
+      },
+      Glib::PRIORITY_LOW);
 }
 
 void MainWindow::show_current(const std::string& fragment)
@@ -402,6 +484,7 @@ void MainWindow::fill_contents()
   for (const auto& n : book_.nav())
     append_node(Gtk::TreeIter(), n);
   contents_view_.expand_all();
+  relayout_nav(contents_view_, contents_scroll_);
 }
 
 void MainWindow::fill_index()
@@ -488,8 +571,15 @@ void MainWindow::highlight_contents()
     return;
   contents_view_.expand_to_path(chosen);
   contents_current_path_ = chosen;
-  contents_view_.set_cursor(chosen);
-  contents_view_.scroll_to_row(chosen);
+  scroll_nav_vertically(contents_view_, chosen);
+  relayout_nav(contents_view_, contents_scroll_);
+  Glib::signal_idle().connect(
+      [this]() {
+        snap_nav_left(contents_view_, contents_scroll_);
+        contents_view_.queue_resize();
+        return false;
+      },
+      Glib::PRIORITY_LOW);
   contents_view_.queue_draw();
 }
 
@@ -563,6 +653,7 @@ void MainWindow::on_find()
   else
     std::snprintf(buf, sizeof(buf), "%zu hits.", hits.size());
   set_status(buf);
+  relayout_nav(find_view_, find_scroll_);
 }
 
 void MainWindow::on_find_activated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn*)
@@ -575,7 +666,7 @@ void MainWindow::on_find_activated(const Gtk::TreeModel::Path& path, Gtk::TreeVi
   if (href.empty())
     return;
   find_current_path_ = path;
-  find_view_.set_cursor(path);
+  snap_nav_left(find_view_, find_scroll_);
   find_view_.queue_draw();
   history_.update_scroll(topic_scroll());
   on_jump(href);
@@ -740,8 +831,14 @@ void MainWindow::on_about()
 void MainWindow::on_nav_page(int page)
 {
   nav_.set_current_page(page);
-  if (page == 2)
+  if (page == 2) {
     find_entry_.grab_focus();
+    snap_nav_left(find_view_, find_scroll_);
+  } else if (page == 0) {
+    snap_nav_left(contents_view_, contents_scroll_);
+  } else if (page == 1) {
+    snap_nav_left(index_view_, index_scroll_);
+  }
 }
 
 void MainWindow::on_not_yet(const Glib::ustring& feature)

@@ -48,6 +48,10 @@ class MainWindow : public Gtk::Window {
   void fill_index();
   void highlight_contents();
   void style_list_column(Gtk::TreeView& view);
+  void snap_nav_left(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll);
+  void keep_nav_left(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll);
+  void scroll_nav_vertically(Gtk::TreeView& view, const Gtk::TreeModel::Path& path);
+  void relayout_nav(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll);
   double topic_scroll() const;
   void set_topic_scroll(double value);
   void on_not_yet(const Glib::ustring& feature);
