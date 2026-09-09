@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "book.hpp"
+#include "topic_view.hpp"
+
 #include <gtkmm.h>
 
 namespace readomatic {
@@ -22,6 +25,9 @@ class MainWindow : public Gtk::Window {
   void on_quit();
   void on_about();
   void on_nav_page(int page);
+  void on_jump(const Glib::ustring& href);
+  void on_spine_step(int delta);
+  void show_current(const std::string& fragment = {});
   void on_not_yet(const Glib::ustring& feature);
 
   Gtk::Box root_{Gtk::ORIENTATION_VERTICAL, 0};
@@ -45,8 +51,9 @@ class MainWindow : public Gtk::Window {
   Gtk::ScrolledWindow find_scroll_;
   Gtk::TreeView find_view_;
   Gtk::ScrolledWindow topic_scroll_;
-  Gtk::TextView topic_view_;
+  TopicView topic_view_;
   Gtk::Statusbar status_;
+  Book book_;
   guint status_ctx_ = 0;
 
   Glib::RefPtr<Gtk::TreeStore> contents_store_;

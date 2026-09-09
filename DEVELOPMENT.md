@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-09-09)
 
-**M0 stub is in the tree.** gtkmm-3 window: menus, Contents / Index / Find toolbar, left notebook, `Gtk::TextView` topic pane, EPUB file chooser (path only), About, single-instance lock.
+**M1 is in the tree.** `Book` extracts the EPUB (libarchive) and reads OPF (libxml2). File → Open… loads the first readable spine document into `TopicView` (XHTML subset → `Gtk::TextView`). Close clears. Contents tree still empty (M2).
 
-Next: **M1 — Open EPUB.**
+Next: **M2 — Contents + browse.**
 
 ## 1. Locked decisions
 
@@ -90,8 +90,8 @@ readomatic
 │   ├── paths.{hpp,cpp}          SOURCE_ROOT / DATADIR / READOMATIC_DATA
 │   ├── main_window.{hpp,cpp}
 │   ├── about_dialog.{hpp,cpp}
-│   ├── book.{hpp,cpp}           M1: zip + OPF + spine + nav  (not in tree yet)
-│   ├── topic_view.{hpp,cpp}     M1: XHTML → TextView tags     (not in tree yet)
+│   ├── book.{hpp,cpp}           zip + OPF + spine
+│   ├── topic_view.{hpp,cpp}     XHTML → TextView tags
 │   ├── history.{hpp,cpp}        M2: Back stack                (not in tree yet)
 │   └── settings.{hpp,cpp}       M4: ini                       (not in tree yet)
 ├── meson.build                 version 0.1.0
@@ -171,11 +171,11 @@ Meson + gtkmm-3. `MainWindow`: menus, toolbar, paned notebook, empty trees, plac
 
 Done when: window matches the ASCII mock; Contents / Index / Find switch pages; Open… reports a path; second process focuses the first.
 
-### M1 — Open EPUB
+### M1 — Open EPUB — **in tree 2026-09-09**
 
-`Book` + `TopicView`. File → Open… extracts, reads OPF, loads **spine[0]** (or the nav start) into the topic pane. Close clears. Errors (not a zip, no OPF) go to the status bar, not a crash.
+`Book` + `TopicView`. File → Open… extracts, reads OPF, loads the first readable spine XHTML into the topic pane (skips SVG cover wrappers). Close clears. Errors (not a zip, no OPF) go to the status bar, not a crash. Internal `http(s)` links are ignored; in-book hrefs load if they resolve.
 
-Done when: a public-domain EPUB 2 and an EPUB 3 each show readable text (and at least one inline image if the book has one). If TextView mapping is hopeless, stop and decide WebKit **before** M2.
+Done when: Kafka and *Astounding* samples show readable text. If TextView mapping is hopeless, stop and decide WebKit **before** M2.
 
 ### M2 — Contents + browse
 

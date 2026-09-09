@@ -6,9 +6,10 @@ window.readomatic-window {
   background-color: #E6E6E1;
 }
 
-.readomatic-topic {
-  background-color: #FFFFFF;
-  color: #000000;
+.readomatic-topic,
+.readomatic-topic text {
+  background-color: #F7F5EF;
+  color: #1A1A1A;
 }
 
 .readomatic-nav {

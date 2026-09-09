@@ -12,6 +12,8 @@ project(
 )
 
 gtkmm = dependency('gtkmm-3.0')
+libarchive = dependency('libarchive')
+libxml = dependency('libxml-2.0')
 
 conf = configuration_data()
 conf.set_quoted('VERSION', meson.project_version())
@@ -33,8 +35,10 @@ executable(
   'src/paths.cpp',
   'src/main_window.cpp',
   'src/about_dialog.cpp',
+  'src/book.cpp',
+  'src/topic_view.cpp',
   include_directories: inc,
-  dependencies: gtkmm,
+  dependencies: [gtkmm, libarchive, libxml],
   install: true,
   install_dir: get_option('bindir'),
 )
@@ -46,6 +50,9 @@ install_data(
 
 install_data(
   'data/skin/lcos/lcos.css',
+  'data/skin/lcos/btn-back.svg',
+  'data/skin/lcos/btn-prev.svg',
+  'data/skin/lcos/btn-next.svg',
   install_dir: get_option('datadir') / 'readomatic' / 'skin' / 'lcos',
 )
 

@@ -3,8 +3,14 @@
 #include "main_window.hpp"
 #include "about_dialog.hpp"
 #include "paths.hpp"
+#include "config.hpp"
 
+#include <cstdio>
+#include <fstream>
 #include <iostream>
+#include <sstream>
+
+#include <glibmm/fileutils.h>
 
 namespace readomatic {
 namespace {
@@ -103,6 +109,23 @@ void MainWindow::build_menu()
 void MainWindow::build_toolbar()
 {
   toolbar_.set_border_width(4);
+  auto set_btn_icon = [](Gtk::Button& btn, const char* file, const char* tip) {
+    btn.set_tooltip_text(tip);
+    const std::string path = find_data_file(std::string("skin/lcos/") + file);
+    if (path.empty())
+      return;
+    try {
+      auto pix = Gdk::Pixbuf::create_from_file(path, 16, 16);
+      auto* img = Gtk::manage(new Gtk::Image(pix));
+      btn.set_image(*img);
+      btn.set_always_show_image(true);
+      btn.set_label("");
+    } catch (const Glib::Error&) {
+    }
+  };
+  set_btn_icon(btn_back_, "btn-back.svg", "Back");
+  set_btn_icon(btn_prev_, "btn-prev.svg", "Previous topic");
+  set_btn_icon(btn_next_, "btn-next.svg", "Next topic");
   btn_contents_.signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_nav_page), 0));
   btn_index_.signal_clicked().connect(
@@ -113,11 +136,9 @@ void MainWindow::build_toolbar()
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
                  Glib::ustring("Back")));
   btn_prev_.signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
-                 Glib::ustring("Previous topic")));
+      sigc::bind(sigc::mem_fun(*this, &MainWindow::on_spine_step), -1));
   btn_next_.signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
-                 Glib::ustring("Next topic")));
+      sigc::bind(sigc::mem_fun(*this, &MainWindow::on_spine_step), 1));
   btn_print_.signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
                  Glib::ustring("Print")));
@@ -173,9 +194,7 @@ void MainWindow::build_body()
   nav_.append_page(find_box_, "Find");
   nav_.set_size_request(220, -1);
 
-  topic_view_.set_editable(false);
-  topic_view_.set_wrap_mode(Gtk::WRAP_WORD_CHAR);
-  topic_view_.get_style_context()->add_class("readomatic-topic");
+  topic_view_.signal_jump().connect(sigc::mem_fun(*this, &MainWindow::on_jump));
   topic_view_.get_buffer()->set_text(
       "Open an EPUB from File → Open…\n\n"
       "Contents, Index, and Find will list the book. This pane shows the topic.");
@@ -207,19 +226,111 @@ void MainWindow::on_open()
   filter->add_mime_type("application/epub+zip");
   filter->add_pattern("*.epub");
   dlg.add_filter(filter);
+  dlg.set_current_folder(std::string(SOURCE_ROOT) + "/data/samples");
   if (dlg.run() != Gtk::RESPONSE_ACCEPT)
     return;
-  set_status("Will open: " + dlg.get_filename());
+  if (!book_.open(dlg.get_filename())) {
+    set_status(book_.error().empty() ? "Could not open EPUB." : book_.error());
+    return;
+  }
+  set_title("Read-O-Matic — " + book_.title());
+  show_current();
+}
+
+void MainWindow::show_current(const std::string& fragment)
+{
+  if (!book_.is_open())
+    return;
+  const std::string href = book_.current_href();
+  const std::string xhtml = book_.load_document(href);
+  const std::string base = book_.resolve(href);
+  const auto slash = base.find_last_of('/');
+  const std::string dir = slash == std::string::npos ? book_.extract_dir() : base.substr(0, slash);
+  topic_view_.load_xhtml(xhtml, dir);
+  if (!fragment.empty())
+    topic_view_.scroll_to_id(fragment);
+  char buf[160];
+  std::snprintf(buf, sizeof(buf), "%s — %d of %d", book_.title().c_str(),
+                book_.spine_index() + 1, book_.spine_count());
+  set_status(buf);
+}
+
+void MainWindow::on_spine_step(int delta)
+{
+  if (!book_.is_open())
+    return;
+  if (!book_.advance_spine(delta)) {
+    set_status(delta > 0 ? "End of book." : "Start of book.");
+    return;
+  }
+  show_current();
+}
+
+void MainWindow::on_jump(const Glib::ustring& href)
+{
+  if (!book_.is_open() || href.empty())
+    return;
+  std::string h(href);
+  if (h.compare(0, 7, "http://") == 0 || h.compare(0, 8, "https://") == 0)
+    return;
+  std::string file = h;
+  std::string frag;
+  const auto hash = h.find('#');
+  if (hash != std::string::npos) {
+    file = h.substr(0, hash);
+    frag = h.substr(hash + 1);
+  }
+  if (file.empty()) {
+    if (topic_view_.scroll_to_id(frag))
+      return;
+    const std::string found = book_.href_for_id(frag);
+    if (found.empty()) {
+      set_status("Jump not in this book.");
+      return;
+    }
+    for (int i = 0; i < book_.spine_count(); ++i) {
+      if (book_.spine_href(i) == found) {
+        book_.set_spine_index(i);
+        show_current(frag);
+        return;
+      }
+    }
+    return;
+  }
+  const std::string path = book_.resolve(file);
+  if (path.empty() || !Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR)) {
+    set_status("Jump not in this book.");
+    return;
+  }
+  for (int i = 0; i < book_.spine_count(); ++i) {
+    if (book_.resolve(book_.spine_href(i)) == path) {
+      book_.set_spine_index(i);
+      show_current(frag);
+      return;
+    }
+  }
+  const auto slash = path.find_last_of('/');
+  const std::string dir = slash == std::string::npos ? book_.extract_dir() : path.substr(0, slash);
+  std::ifstream in(path);
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  topic_view_.load_xhtml(ss.str(), dir);
+  if (!frag.empty())
+    topic_view_.scroll_to_id(frag);
+  set_status(book_.title() + " — (jump)");
 }
 
 void MainWindow::on_close_book()
 {
+  book_.close();
   contents_store_->clear();
   index_store_->clear();
   find_store_->clear();
+  topic_view_.clear_topic();
   topic_view_.get_buffer()->set_text(
       "Open an EPUB from File → Open…\n\n"
       "Contents, Index, and Find will list the book. This pane shows the topic.");
+  set_title("Read-O-Matic");
   set_status("No book open.");
 }
 
