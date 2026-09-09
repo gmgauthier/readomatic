@@ -1,0 +1,4 @@
+# clangd looks here instead of walking for compile_commands.json.
+# Meson writes that file under build/ (gitignored).
+CompileFlags:
+  CompilationDatabase: build

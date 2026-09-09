@@ -1,0 +1,21 @@
+/* Read-O-Matic lcos skin — GTK3 CSS.
+ * Decorations stay with Clearlooks / Phenix. We only tint the client.
+ */
+
+window.readomatic-window {
+  background-color: #E6E6E1;
+}
+
+.readomatic-topic {
+  background-color: #FFFFFF;
+  color: #000000;
+}
+
+.readomatic-nav {
+  background-color: #FFFFFF;
+  color: #000000;
+}
+
+statusbar {
+  background-color: #D4D0C8;
+}
