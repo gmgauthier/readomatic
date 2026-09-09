@@ -4,6 +4,7 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <libxml/HTMLparser.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
@@ -12,6 +13,7 @@
 #include <glibmm/fileutils.h>
 #include <glibmm/miscutils.h>
 
+#include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
@@ -74,6 +76,151 @@ xmlNode* find_desc(xmlNode* parent, const char* name)
       return hit;
   }
   return nullptr;
+}
+
+std::string ascii_lower(std::string s)
+{
+  std::transform(s.begin(), s.end(), s.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  return s;
+}
+
+std::string html_name(xmlNode* n)
+{
+  return ascii_lower(node_name(n));
+}
+
+std::string squeeze_ws(std::string s)
+{
+  for (size_t i = 0; i + 1 < s.size();) {
+    if (static_cast<unsigned char>(s[i]) == 0xC2 &&
+        static_cast<unsigned char>(s[i + 1]) == 0xA0) {
+      s[i] = ' ';
+      s.erase(i + 1, 1);
+    } else {
+      ++i;
+    }
+  }
+  std::string out;
+  out.reserve(s.size());
+  bool space = true;
+  for (unsigned char c : s) {
+    if (std::isspace(c)) {
+      if (!space) {
+        out.push_back(' ');
+        space = true;
+      }
+    } else {
+      out.push_back(static_cast<char>(c));
+      space = false;
+    }
+  }
+  if (!out.empty() && out.back() == ' ')
+    out.pop_back();
+  return out;
+}
+
+bool skip_html_tag(const std::string& name)
+{
+  return name == "script" || name == "style" || name == "svg" || name == "iframe" ||
+         name == "head" || name == "meta" || name == "link" || name == "title";
+}
+
+bool is_block_tag(const std::string& name)
+{
+  return name == "p" || name == "div" || name == "br" || name == "li" || name == "tr" ||
+         name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" ||
+         name == "h6" || name == "blockquote" || name == "pre" || name == "section" ||
+         name == "article" || name == "header" || name == "footer";
+}
+
+void collect_plain(xmlNode* n, std::string& out)
+{
+  for (; n; n = n->next) {
+    if (n->type == XML_TEXT_NODE || n->type == XML_CDATA_SECTION_NODE) {
+      if (n->content)
+        out += reinterpret_cast<const char*>(n->content);
+      continue;
+    }
+    if (n->type != XML_ELEMENT_NODE)
+      continue;
+    const std::string name = html_name(n);
+    if (skip_html_tag(name))
+      continue;
+    if (is_block_tag(name))
+      out += ' ';
+    collect_plain(n->children, out);
+    if (is_block_tag(name))
+      out += ' ';
+  }
+}
+
+struct Heading {
+  int level = 1;
+  std::string id;
+  std::string text;
+};
+
+void collect_headings(xmlNode* n, std::vector<Heading>& out)
+{
+  for (; n; n = n->next) {
+    if (n->type != XML_ELEMENT_NODE)
+      continue;
+    const std::string name = html_name(n);
+    if (skip_html_tag(name))
+      continue;
+    if (name == "h1" || name == "h2" || name == "h3") {
+      Heading h;
+      h.level = name[1] - '0';
+      h.id = node_prop(n, "id");
+      h.text = squeeze_ws(node_text(n));
+      if (!h.text.empty())
+        out.push_back(std::move(h));
+      continue;
+    }
+    collect_headings(n->children, out);
+  }
+}
+
+xmlDoc* parse_xhtml_memory(const std::string& xhtml)
+{
+  if (xhtml.empty())
+    return nullptr;
+  return htmlReadMemory(xhtml.data(), static_cast<int>(xhtml.size()), "doc.xhtml", "UTF-8",
+                        HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING |
+                            HTML_PARSE_NONET | HTML_PARSE_NOBLANKS);
+}
+
+std::string fallback_title(const std::string& href)
+{
+  std::string h = href;
+  const auto hash = h.find('#');
+  if (hash != std::string::npos)
+    h = h.substr(0, hash);
+  const auto slash = h.find_last_of('/');
+  if (slash != std::string::npos)
+    h = h.substr(slash + 1);
+  const auto dot = h.find('.');
+  if (dot != std::string::npos)
+    h = h.substr(0, dot);
+  return h.empty() ? std::string("Topic") : h;
+}
+
+std::string excerpt_at(const std::string& text, size_t pos, size_t qlen)
+{
+  const size_t before = 36;
+  const size_t after = 40;
+  const size_t start = pos > before ? pos - before : 0;
+  size_t end = pos + qlen + after;
+  if (end > text.size())
+    end = text.size();
+  std::string out;
+  if (start > 0)
+    out += "…";
+  out += text.substr(start, end - start);
+  if (end < text.size())
+    out += "…";
+  return squeeze_ws(out);
 }
 
 std::string dirname_of(const std::string& path)
@@ -463,6 +610,73 @@ std::string Book::href_for_id(const std::string& id) const
       return href;
   }
   return {};
+}
+
+std::vector<Book::IndexEntry> Book::build_index() const
+{
+  std::vector<IndexEntry> out;
+  if (!is_open())
+    return out;
+  for (const auto& href : spine_) {
+    if (skip_spine_href(href))
+      continue;
+    const std::string xhtml = load_document(href);
+    xmlDoc* doc = parse_xhtml_memory(xhtml);
+    std::vector<Heading> headings;
+    if (doc) {
+      collect_headings(xmlDocGetRootElement(doc), headings);
+      xmlFreeDoc(doc);
+    }
+    if (headings.empty()) {
+      out.push_back({fallback_title(href), href});
+      continue;
+    }
+    for (const auto& h : headings) {
+      IndexEntry e;
+      e.label = h.text;
+      e.href = h.id.empty() ? href : href + "#" + h.id;
+      out.push_back(std::move(e));
+    }
+  }
+  return out;
+}
+
+std::vector<Book::SearchHit> Book::search(const std::string& query, int limit) const
+{
+  std::vector<SearchHit> out;
+  if (!is_open() || query.size() < 2 || limit <= 0)
+    return out;
+  const std::string needle = ascii_lower(query);
+  for (const auto& href : spine_) {
+    if (out.size() >= static_cast<size_t>(limit))
+      break;
+    if (skip_spine_href(href))
+      continue;
+    const std::string xhtml = load_document(href);
+    xmlDoc* doc = parse_xhtml_memory(xhtml);
+    std::string raw;
+    if (doc) {
+      collect_plain(xmlDocGetRootElement(doc), raw);
+      xmlFreeDoc(doc);
+    }
+    const std::string text = squeeze_ws(raw);
+    const std::string hay = ascii_lower(text);
+    size_t pos = 0;
+    int occ = 0;
+    while (out.size() < static_cast<size_t>(limit)) {
+      pos = hay.find(needle, pos);
+      if (pos == std::string::npos)
+        break;
+      SearchHit hit;
+      hit.href = href;
+      hit.excerpt = excerpt_at(text, pos, needle.size());
+      hit.occurrence = occ;
+      out.push_back(std::move(hit));
+      ++occ;
+      pos += needle.size();
+    }
+  }
+  return out;
 }
 
 }  // namespace readomatic

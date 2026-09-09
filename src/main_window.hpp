@@ -30,14 +30,24 @@ class MainWindow : public Gtk::Window {
   void on_spine_step(int delta);
   void on_back();
   void on_contents_activated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn* col);
+  void on_index_activated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn* col);
+  void on_find_activated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn* col);
+  void on_find();
   bool on_contents_motion(GdkEventMotion* event);
   bool on_contents_leave(GdkEventCrossing* event);
   bool on_contents_key(GdkEventKey* event);
   void on_contents_cell_data(Gtk::CellRenderer* cell,
                              const Gtk::TreeModel::const_iterator& it);
+  bool on_find_motion(GdkEventMotion* event);
+  bool on_find_leave(GdkEventCrossing* event);
+  bool on_find_key(GdkEventKey* event);
+  void on_find_cell_data(Gtk::CellRenderer* cell,
+                         const Gtk::TreeModel::const_iterator& it);
   void show_current(const std::string& fragment = {});
   void fill_contents();
+  void fill_index();
   void highlight_contents();
+  void style_list_column(Gtk::TreeView& view);
   double topic_scroll() const;
   void set_topic_scroll(double value);
   void on_not_yet(const Glib::ustring& feature);
@@ -75,9 +85,13 @@ class MainWindow : public Gtk::Window {
   Glib::RefPtr<Gtk::ListStore> find_store_;
   Gtk::TreeModelColumn<Glib::ustring> col_text_;
   Gtk::TreeModelColumn<Glib::ustring> col_href_;
+  Gtk::TreeModelColumn<int> col_occ_;
   Gtk::TreeModel::Path contents_hover_path_;
   Gtk::TreeModel::Path contents_current_path_;
+  Gtk::TreeModel::Path find_hover_path_;
+  Gtk::TreeModel::Path find_current_path_;
   std::string loaded_fragment_;
+  Glib::ustring last_find_query_;
 };
 
 }  // namespace readomatic

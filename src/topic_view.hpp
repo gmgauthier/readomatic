@@ -18,6 +18,7 @@ class TopicView : public Gtk::TextView {
   void load_xhtml(const std::string& xhtml, const std::string& base_dir);
   void clear_topic();
   bool scroll_to_id(const std::string& id);
+  bool select_match(const Glib::ustring& query, int occurrence);
 
   sigc::signal<void, Glib::ustring>& signal_jump() { return signal_jump_; }
 

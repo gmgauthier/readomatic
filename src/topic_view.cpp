@@ -86,6 +86,10 @@ void TopicView::ensure_tags()
     t->property_underline() = Pango::UNDERLINE_SINGLE;
     t->property_foreground() = "#0B3A96";
   });
+  mk("find-hit", [](auto t) {
+    t->property_background() = "#404040";
+    t->property_foreground() = "#FFFFFF";
+  });
 }
 
 void TopicView::clear_topic()
@@ -278,6 +282,34 @@ bool TopicView::scroll_to_id(const std::string& id)
     return false;
   scroll_to(mark, 0.1, 0.0, 0.15);
   return true;
+}
+
+bool TopicView::select_match(const Glib::ustring& query, int occurrence)
+{
+  if (query.empty() || occurrence < 0)
+    return false;
+  auto table = buf_->get_tag_table();
+  auto tag = table->lookup("find-hit");
+  if (tag) {
+    buf_->remove_tag(tag, buf_->begin(), buf_->end());
+    tag->set_priority(table->get_size() - 1);
+  }
+  Gtk::TextIter start = buf_->begin();
+  Gtk::TextIter m0, m1;
+  const auto flags = Gtk::TEXT_SEARCH_VISIBLE_ONLY | Gtk::TEXT_SEARCH_TEXT_ONLY |
+                     Gtk::TEXT_SEARCH_CASE_INSENSITIVE;
+  int n = 0;
+  while (start.forward_search(query, flags, m0, m1)) {
+    if (n == occurrence) {
+      if (tag)
+        buf_->apply_tag(tag, m0, m1);
+      scroll_to(m0, 0.15, 0.0, 0.25);
+      return true;
+    }
+    ++n;
+    start = m1;
+  }
+  return false;
 }
 
 bool TopicView::on_button_release_event(GdkEventButton* event)

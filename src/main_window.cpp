@@ -25,6 +25,53 @@ Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label,
   return item;
 }
 
+void paint_nav_cell(Gtk::CellRenderer* cell,
+                    const Gtk::TreeModel::Path& path,
+                    const Gtk::TreeModel::Path& current,
+                    const Gtk::TreeModel::Path& hover)
+{
+  if (!cell)
+    return;
+  const bool on = (current.size() > 0 && path.size() > 0 && path == current) ||
+                  (hover.size() > 0 && path.size() > 0 && path == hover);
+  if (on) {
+    cell->property_cell_background() = "#C4C4BC";
+    cell->property_cell_background_set() = true;
+  } else {
+    cell->property_cell_background_set() = false;
+  }
+}
+
+bool nav_motion(Gtk::TreeView& view, Gtk::TreeModel::Path& hover, GdkEventMotion* event)
+{
+  Gtk::TreeModel::Path path;
+  Gtk::TreeViewColumn* col = nullptr;
+  int cx = 0, cy = 0, bx = 0, by = 0;
+  view.convert_widget_to_bin_window_coords(static_cast<int>(event->x),
+                                           static_cast<int>(event->y), bx, by);
+  if (view.get_path_at_pos(bx, by, path, col, cx, cy) && path.size() > 0) {
+    if (hover.size() == 0 || hover != path) {
+      hover = path;
+      view.queue_draw();
+    }
+  } else if (hover.size() > 0) {
+    hover.clear();
+    view.queue_draw();
+  }
+  return false;
+}
+
+bool nav_leave(Gtk::TreeView& view, Gtk::TreeModel::Path& hover, GdkEventCrossing* event)
+{
+  if (event && event->detail == GDK_NOTIFY_INFERIOR)
+    return false;
+  if (hover.size() > 0) {
+    hover.clear();
+    view.queue_draw();
+  }
+  return false;
+}
+
 }  // namespace
 
 MainWindow::MainWindow()
@@ -154,11 +201,24 @@ void MainWindow::build_toolbar()
   root_.pack_start(toolbar_, Gtk::PACK_SHRINK);
 }
 
+void MainWindow::style_list_column(Gtk::TreeView& view)
+{
+  if (auto* col = view.get_column(0)) {
+    col->set_expand(true);
+    const auto cells = col->get_cells();
+    if (!cells.empty()) {
+      if (auto* text = dynamic_cast<Gtk::CellRendererText*>(cells[0]))
+        text->property_ellipsize() = Pango::ELLIPSIZE_END;
+    }
+  }
+}
+
 void MainWindow::build_body()
 {
   Gtk::TreeModel::ColumnRecord rec;
   rec.add(col_text_);
   rec.add(col_href_);
+  rec.add(col_occ_);
   contents_store_ = Gtk::TreeStore::create(rec);
   index_store_ = Gtk::ListStore::create(rec);
   find_store_ = Gtk::ListStore::create(rec);
@@ -194,18 +254,52 @@ void MainWindow::build_body()
   index_view_.set_model(index_store_);
   index_view_.append_column("Index", col_text_);
   index_view_.set_headers_visible(false);
+  index_view_.set_activate_on_single_click(true);
+  index_view_.set_enable_search(true);
   index_view_.get_style_context()->add_class("readomatic-nav");
+  style_list_column(index_view_);
+  index_view_.signal_row_activated().connect(
+      sigc::mem_fun(*this, &MainWindow::on_index_activated));
   index_scroll_.add(index_view_);
   index_scroll_.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 
   find_entry_.set_placeholder_text("Find in this book…");
+  find_entry_.signal_activate().connect(sigc::mem_fun(*this, &MainWindow::on_find));
+  auto* find_go = Gtk::manage(new Gtk::Button("Find"));
+  find_go->signal_clicked().connect(sigc::mem_fun(*this, &MainWindow::on_find));
+  auto* find_row = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_HORIZONTAL, 4));
+  find_row->pack_start(find_entry_, Gtk::PACK_EXPAND_WIDGET);
+  find_row->pack_start(*find_go, Gtk::PACK_SHRINK);
+
   find_view_.set_model(find_store_);
   find_view_.append_column("Find", col_text_);
   find_view_.set_headers_visible(false);
+  find_view_.get_selection()->set_mode(Gtk::SELECTION_NONE);
+  find_view_.set_can_focus(true);
+  find_view_.set_activate_on_single_click(true);
+  find_view_.set_enable_search(false);
+  find_view_.get_style_context()->add_class("readomatic-nav");
+  style_list_column(find_view_);
+  if (auto* col = find_view_.get_column(0)) {
+    const auto cells = col->get_cells();
+    if (!cells.empty()) {
+      if (auto* text = dynamic_cast<Gtk::CellRendererText*>(cells[0]))
+        col->set_cell_data_func(*text, sigc::mem_fun(*this, &MainWindow::on_find_cell_data));
+    }
+  }
+  find_view_.add_events(Gdk::POINTER_MOTION_MASK | Gdk::LEAVE_NOTIFY_MASK);
+  find_view_.signal_motion_notify_event().connect(
+      sigc::mem_fun(*this, &MainWindow::on_find_motion), false);
+  find_view_.signal_leave_notify_event().connect(
+      sigc::mem_fun(*this, &MainWindow::on_find_leave), false);
+  find_view_.signal_key_press_event().connect(
+      sigc::mem_fun(*this, &MainWindow::on_find_key), false);
+  find_view_.signal_row_activated().connect(
+      sigc::mem_fun(*this, &MainWindow::on_find_activated));
   find_scroll_.add(find_view_);
   find_scroll_.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
   find_box_.set_border_width(4);
-  find_box_.pack_start(find_entry_, Gtk::PACK_SHRINK);
+  find_box_.pack_start(*find_row, Gtk::PACK_SHRINK);
   find_box_.pack_start(find_scroll_, Gtk::PACK_EXPAND_WIDGET);
 
   nav_.set_show_tabs(false);
@@ -256,7 +350,13 @@ void MainWindow::on_open()
   }
   set_title("Read-O-Matic — " + book_.title());
   history_.clear();
+  find_store_->clear();
+  find_current_path_.clear();
+  find_hover_path_.clear();
+  last_find_query_.clear();
+  find_entry_.set_text("");
   fill_contents();
+  fill_index();
   show_current();
 }
 
@@ -304,53 +404,52 @@ void MainWindow::fill_contents()
   contents_view_.expand_all();
 }
 
+void MainWindow::fill_index()
+{
+  index_store_->clear();
+  for (const auto& e : book_.build_index()) {
+    auto it = index_store_->append();
+    (*it)[col_text_] = e.label;
+    (*it)[col_href_] = e.href;
+    (*it)[col_occ_] = 0;
+  }
+}
+
 void MainWindow::on_contents_cell_data(Gtk::CellRenderer* cell,
                                        const Gtk::TreeModel::const_iterator& it)
 {
-  if (!cell || !it)
+  if (!it)
     return;
-  const auto path = contents_store_->get_path(it);
-  const bool current = contents_current_path_.size() > 0 && path.size() > 0 &&
-                       path == contents_current_path_;
-  const bool hover = contents_hover_path_.size() > 0 && path.size() > 0 &&
-                     path == contents_hover_path_;
-  if (current || hover) {
-    cell->property_cell_background() = "#C4C4BC";
-    cell->property_cell_background_set() = true;
-  } else {
-    cell->property_cell_background_set() = false;
-  }
+  paint_nav_cell(cell, contents_store_->get_path(it), contents_current_path_,
+                 contents_hover_path_);
 }
 
 bool MainWindow::on_contents_motion(GdkEventMotion* event)
 {
-  Gtk::TreeModel::Path path;
-  Gtk::TreeViewColumn* col = nullptr;
-  int cx = 0, cy = 0;
-  int bx = 0, by = 0;
-  contents_view_.convert_widget_to_bin_window_coords(static_cast<int>(event->x),
-                                                     static_cast<int>(event->y), bx, by);
-  if (contents_view_.get_path_at_pos(bx, by, path, col, cx, cy) && path.size() > 0) {
-    if (contents_hover_path_.size() == 0 || contents_hover_path_ != path) {
-      contents_hover_path_ = path;
-      contents_view_.queue_draw();
-    }
-  } else if (contents_hover_path_.size() > 0) {
-    contents_hover_path_.clear();
-    contents_view_.queue_draw();
-  }
-  return false;
+  return nav_motion(contents_view_, contents_hover_path_, event);
 }
 
 bool MainWindow::on_contents_leave(GdkEventCrossing* event)
 {
-  if (event && event->detail == GDK_NOTIFY_INFERIOR)
-    return false;
-  if (contents_hover_path_.size() > 0) {
-    contents_hover_path_.clear();
-    contents_view_.queue_draw();
-  }
-  return false;
+  return nav_leave(contents_view_, contents_hover_path_, event);
+}
+
+void MainWindow::on_find_cell_data(Gtk::CellRenderer* cell,
+                                   const Gtk::TreeModel::const_iterator& it)
+{
+  if (!it)
+    return;
+  paint_nav_cell(cell, find_store_->get_path(it), find_current_path_, find_hover_path_);
+}
+
+bool MainWindow::on_find_motion(GdkEventMotion* event)
+{
+  return nav_motion(find_view_, find_hover_path_, event);
+}
+
+bool MainWindow::on_find_leave(GdkEventCrossing* event)
+{
+  return nav_leave(find_view_, find_hover_path_, event);
 }
 
 void MainWindow::highlight_contents()
@@ -419,6 +518,74 @@ void MainWindow::on_contents_activated(const Gtk::TreeModel::Path& path, Gtk::Tr
   on_jump(href);
 }
 
+void MainWindow::on_index_activated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn*)
+{
+  auto it = index_store_->get_iter(path);
+  if (!it)
+    return;
+  const Glib::ustring href = (*it)[col_href_];
+  if (href.empty())
+    return;
+  history_.update_scroll(topic_scroll());
+  on_jump(href);
+}
+
+void MainWindow::on_find()
+{
+  find_store_->clear();
+  find_current_path_.clear();
+  find_hover_path_.clear();
+  last_find_query_.clear();
+  if (!book_.is_open()) {
+    set_status("No book open.");
+    return;
+  }
+  const Glib::ustring q = find_entry_.get_text();
+  if (q.size() < 2) {
+    set_status("Type at least two letters.");
+    return;
+  }
+  last_find_query_ = q;
+  const auto hits = book_.search(std::string(q), 200);
+  for (const auto& h : hits) {
+    auto it = find_store_->append();
+    (*it)[col_text_] = h.excerpt;
+    (*it)[col_href_] = h.href;
+    (*it)[col_occ_] = h.occurrence;
+  }
+  if (hits.empty()) {
+    set_status("No matches.");
+    return;
+  }
+  char buf[80];
+  if (hits.size() >= 200)
+    std::snprintf(buf, sizeof(buf), "200+ hits (showing first 200).");
+  else
+    std::snprintf(buf, sizeof(buf), "%zu hits.", hits.size());
+  set_status(buf);
+}
+
+void MainWindow::on_find_activated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn*)
+{
+  auto it = find_store_->get_iter(path);
+  if (!it)
+    return;
+  const Glib::ustring href = (*it)[col_href_];
+  const int occ = (*it)[col_occ_];
+  if (href.empty())
+    return;
+  find_current_path_ = path;
+  find_view_.set_cursor(path);
+  find_view_.queue_draw();
+  history_.update_scroll(topic_scroll());
+  on_jump(href);
+  const Glib::ustring q = last_find_query_;
+  Glib::signal_idle().connect([this, q, occ]() {
+    topic_view_.select_match(q, occ);
+    return false;
+  });
+}
+
 bool MainWindow::on_contents_key(GdkEventKey* event)
 {
   if (!event)
@@ -432,6 +599,22 @@ bool MainWindow::on_contents_key(GdkEventKey* event)
   if (path.size() == 0)
     return false;
   on_contents_activated(path, col);
+  return true;
+}
+
+bool MainWindow::on_find_key(GdkEventKey* event)
+{
+  if (!event)
+    return false;
+  if (event->keyval != GDK_KEY_Return && event->keyval != GDK_KEY_KP_Enter &&
+      event->keyval != GDK_KEY_space)
+    return false;
+  Gtk::TreeModel::Path path;
+  Gtk::TreeViewColumn* col = nullptr;
+  find_view_.get_cursor(path, col);
+  if (path.size() == 0)
+    return false;
+  on_find_activated(path, col);
   return true;
 }
 
@@ -531,6 +714,10 @@ void MainWindow::on_close_book()
   contents_store_->clear();
   index_store_->clear();
   find_store_->clear();
+  find_current_path_.clear();
+  find_hover_path_.clear();
+  last_find_query_.clear();
+  find_entry_.set_text("");
   topic_view_.clear_topic();
   topic_view_.get_buffer()->set_text(
       "Open an EPUB from File → Open…\n\n"
@@ -553,6 +740,8 @@ void MainWindow::on_about()
 void MainWindow::on_nav_page(int page)
 {
   nav_.set_current_page(page);
+  if (page == 2)
+    find_entry_.grab_focus();
 }
 
 void MainWindow::on_not_yet(const Glib::ustring& feature)

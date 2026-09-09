@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-09-09)
 
-**M2 is in the tree.** Contents from EPUB3 `nav` or NCX. Activate a row to jump. `<<` `>>` walk the spine. Back walks a history stack. Status `Title — n of m`.
+**M3 is in the tree.** Index lists spine headings (`h1`–`h3`). Find searches this book, lists excerpts, and activating a hit selects the match.
 
-Next: **M3 — Index + Find.**
+Next: **M4 — Bookmarks + last topic.**
 
 ## 1. Locked decisions
 
@@ -92,7 +92,7 @@ readomatic
 │   ├── about_dialog.{hpp,cpp}
 │   ├── book.{hpp,cpp}           zip + OPF + spine
 │   ├── topic_view.{hpp,cpp}     XHTML → TextView tags
-│   ├── history.{hpp,cpp}        M2: Back stack                (not in tree yet)
+│   ├── history.hpp              M2: Back stack
 │   └── settings.{hpp,cpp}       M4: ini                       (not in tree yet)
 ├── meson.build                 version 0.1.0
 ├── README.md
@@ -183,7 +183,7 @@ Fill Contents from EPUB3 `nav` or NCX. Activate a row → load that href, push B
 
 Done when: you can open a book, jump via Contents, step `>>` through chapters, and Back returns to the previous topic.
 
-### M3 — Index + Find
+### M3 — Index + Find — **in tree 2026-09-09**
 
 Index: spine titles plus headings. Find: case-insensitive search over uncompressed spine documents; hit list with short excerpt; activate jumps and selects.
 

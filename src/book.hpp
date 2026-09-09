@@ -23,6 +23,17 @@ class Book {
     std::vector<NavNode> children;
   };
 
+  struct IndexEntry {
+    std::string label;
+    std::string href;
+  };
+
+  struct SearchHit {
+    std::string href;
+    std::string excerpt;
+    int occurrence = 0;  // nth match of the query in this document
+  };
+
   Book() = default;
   ~Book() { close(); }
   Book(const Book&) = delete;
@@ -49,6 +60,8 @@ class Book {
   bool advance_spine(int delta);                      // skip cover wrappers
   std::string href_for_id(const std::string& id) const;
   const std::vector<NavNode>& nav() const { return nav_; }
+  std::vector<IndexEntry> build_index() const;
+  std::vector<SearchHit> search(const std::string& query, int limit = 200) const;
 
  private:
   bool extract_zip(const std::string& path);
