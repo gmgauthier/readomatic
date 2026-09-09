@@ -10,7 +10,11 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 **M0 stub.** gtkmm-3 window: File / Bookmark / Options menus, Contents · Index · Find toolbar, left notebook, topic pane (`Gtk::TextView`), status bar. File → Open… picks an `.epub` but does not parse it yet.
 
-Next: unzip OPF, fill Contents from nav, render spine XHTML in the topic pane.
+Next: **M1 — Open EPUB** (see [DEVELOPMENT.md](DEVELOPMENT.md)). Sample books live in `data/samples/` (git-only).
+
+| Doc | What |
+|---|---|
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Locked decisions, architecture, milestones M0–M6 |
 
 ## Build
 
