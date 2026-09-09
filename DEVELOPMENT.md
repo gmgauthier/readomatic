@@ -2,6 +2,7 @@
 
 A gtkmm-3 **EPUB** reader for LCOS. The *window* is WinHelp 4 / WinHlp32 (and OS/2 `VIEW.EXE`); the *payload* is EPUB. Not a `.hlp` engine.
 
+Reference window: `brand/ui-reference.svg`  
 License: The Unlicense (`UNLICENSE`)  
 Binary: `readomatic`  
 Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.com/gmgauthier/readomatic
@@ -79,7 +80,7 @@ Edit: Copy (selection in the topic). Bookmark: Define… / list of this book’s
 
 ```
 readomatic
-├── brand/                      icon-tile.svg (desktop icon)
+├── brand/                      icon-tile.svg, ui-reference.svg
 ├── data/
 │   ├── readomatic.desktop
 │   └── skin/lcos/lcos.css

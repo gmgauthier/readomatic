@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" width="800" height="560" role="img" aria-label="Read-O-Matic v1.0 window mock">
+  <defs>
+    <linearGradient id="titlebar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1660C4"/>
+      <stop offset="1" stop-color="#0B3A96"/>
+    </linearGradient>
+    <linearGradient id="selrow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7A9BC4"/>
+      <stop offset="1" stop-color="#5E84B0"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer Win32 frame -->
+  <rect width="800" height="560" fill="#D4D0C8"/>
+  <rect x="0.5" y="0.5" width="799" height="559" fill="none" stroke="#FFFFFF"/>
+  <rect x="2.5" y="2.5" width="795" height="555" fill="none" stroke="#808080"/>
+  <rect x="3.5" y="3.5" width="793" height="553" fill="none" stroke="#404040"/>
+  <!-- Title bar -->
+  <rect x="5" y="5" width="790" height="22" fill="url(#titlebar)"/>
+  <rect x="10" y="8" width="16" height="16" rx="2.5" fill="#0B1D38"/>
+  <rect x="13" y="11" width="10" height="11" fill="none" stroke="#E8F2FF" stroke-width="1.2"/>
+  <line x1="15" y1="14" x2="21" y2="14" stroke="#E8F2FF" stroke-width="1"/>
+  <line x1="15" y1="17" x2="21" y2="17" stroke="#E8F2FF" stroke-width="1"/>
+  <text x="32" y="20" font-family="Tahoma, Geneva, DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">Read-O-Matic</text>
+  <g font-family="Tahoma, Geneva, sans-serif" font-size="11" font-weight="700">
+    <rect x="722" y="8" width="18" height="16" fill="#D4D0C8" stroke="#FFFFFF"/>
+    <rect x="723" y="9" width="16" height="14" fill="none" stroke="#808080"/>
+    <text x="726" y="20" fill="#000">_</text>
+    <rect x="742" y="8" width="18" height="16" fill="#D4D0C8" stroke="#FFFFFF"/>
+    <rect x="743" y="9" width="16" height="14" fill="none" stroke="#808080"/>
+    <rect x="747" y="12" width="8" height="7" fill="none" stroke="#000" stroke-width="1.2"/>
+    <rect x="762" y="8" width="18" height="16" fill="#D4D0C8" stroke="#FFFFFF"/>
+    <rect x="763" y="9" width="16" height="14" fill="none" stroke="#808080"/>
+    <path d="M767 12 L775 20 M775 12 L767 20" stroke="#000" stroke-width="1.4"/>
+  </g>
+  <!-- Menu -->
+  <rect x="5" y="27" width="790" height="22" fill="#D4D0C8"/>
+  <g font-family="Tahoma, Geneva, DejaVu Sans, sans-serif" font-size="12" fill="#000">
+    <text x="14" y="43">File</text>
+    <text x="52" y="43">Edit</text>
+    <text x="94" y="43">Bookmark</text>
+    <text x="168" y="43">Options</text>
+    <text x="232" y="43">Help</text>
+  </g>
+  <line x1="5" y1="49" x2="795" y2="49" stroke="#808080"/>
+  <line x1="5" y1="50" x2="795" y2="50" stroke="#FFFFFF"/>
+  <!-- Toolbar -->
+  <rect x="5" y="51" width="790" height="36" fill="#D4D0C8"/>
+  <g fill="#D4D0C8" stroke="#FFFFFF">
+    <rect x="10" y="56" width="72" height="26"/>
+    <rect x="86" y="56" width="56" height="26"/>
+    <rect x="146" y="56" width="52" height="26"/>
+    <rect x="214" y="56" width="52" height="26"/>
+    <rect x="270" y="56" width="36" height="26"/>
+    <rect x="310" y="56" width="36" height="26"/>
+    <rect x="350" y="56" width="52" height="26"/>
+  </g>
+  <g fill="none" stroke="#808080">
+    <rect x="11" y="57" width="70" height="24"/>
+    <rect x="87" y="57" width="54" height="24"/>
+    <rect x="147" y="57" width="50" height="24"/>
+    <rect x="215" y="57" width="50" height="24"/>
+    <rect x="271" y="57" width="34" height="24"/>
+    <rect x="311" y="57" width="34" height="24"/>
+    <rect x="351" y="57" width="50" height="24"/>
+  </g>
+  <g font-family="Tahoma, Geneva, DejaVu Sans, sans-serif" font-size="11" fill="#000">
+    <text x="18" y="74">Contents</text>
+    <text x="98" y="74">Index</text>
+    <text x="158" y="74">Find</text>
+    <text x="224" y="74">Back</text>
+    <text x="277" y="74">&lt;&lt;</text>
+    <text x="317" y="74">&gt;&gt;</text>
+    <text x="360" y="74">Print</text>
+  </g>
+  <line x1="206" y1="58" x2="206" y2="80" stroke="#808080"/>
+  <line x1="207" y1="58" x2="207" y2="80" stroke="#FFFFFF"/>
+  <!-- Left: Contents tree -->
+  <rect x="8" y="92" width="220" height="428" fill="#FFFFFF"/>
+  <rect x="8" y="92" width="220" height="428" fill="none" stroke="#808080"/>
+  <rect x="9" y="93" width="218" height="426" fill="none" stroke="#404040"/>
+  <g font-family="Tahoma, Geneva, DejaVu Sans, sans-serif" font-size="12">
+    <text x="16" y="114" fill="#000">− The Metamorphosis</text>
+    <text x="32" y="136" fill="#000">I</text>
+    <rect x="12" y="142" width="210" height="20" fill="url(#selrow)"/>
+    <text x="32" y="157" fill="#fff">II</text>
+    <text x="32" y="178" fill="#000">III</text>
+  </g>
+  <!-- Right: topic pane -->
+  <rect x="232" y="92" width="560" height="428" fill="#FFFFFF"/>
+  <rect x="232" y="92" width="560" height="428" fill="none" stroke="#808080"/>
+  <rect x="233" y="93" width="558" height="426" fill="none" stroke="#404040"/>
+  <g font-family="Georgia, Times New Roman, DejaVu Serif, serif" fill="#000">
+    <text x="248" y="122" font-size="18" font-weight="700">II</text>
+    <text x="248" y="150" font-size="13">It was not until it was getting dark that evening that</text>
+    <text x="248" y="168" font-size="13">Gregor awoke from his deep sleep. He would certainly</text>
+    <text x="248" y="186" font-size="13">have woken soon afterwards anyway even if he had not</text>
+    <text x="248" y="204" font-size="13">been disturbed, as he had had enough sleep and felt</text>
+    <text x="248" y="222" font-size="13">reasonably well.</text>
+    <text x="248" y="252" font-size="13">He thought of his family, and of the</text>
+    <text x="248" y="270" font-size="13" fill="#0B3A96" text-decoration="underline">chief clerk</text>
+    <text x="318" y="270" font-size="13"> who had been so rude that morning.</text>
+  </g>
+  <line x1="248" y1="272" x2="310" y2="272" stroke="#0B3A96" stroke-width="1"/>
+  <!-- Status -->
+  <rect x="8" y="524" width="784" height="28" fill="#D4D0C8"/>
+  <line x1="8" y1="524" x2="792" y2="524" stroke="#808080"/>
+  <line x1="8" y1="525" x2="792" y2="525" stroke="#FFFFFF"/>
+  <rect x="12" y="528" width="760" height="20" fill="#D4D0C8"/>
+  <rect x="12" y="528" width="760" height="20" fill="none" stroke="#808080"/>
+  <rect x="13" y="529" width="758" height="18" fill="none" stroke="#FFFFFF"/>
+  <text x="20" y="543" font-family="Tahoma, Geneva, DejaVu Sans, sans-serif" font-size="12" fill="#000">The Metamorphosis — 2 of 3</text>
+  <g stroke="#808080" stroke-width="1.2">
+    <line x1="776" y1="546" x2="790" y2="532"/>
+    <line x1="782" y1="546" x2="790" y2="538"/>
+    <line x1="788" y1="546" x2="790" y2="544"/>
+  </g>
+</svg>
