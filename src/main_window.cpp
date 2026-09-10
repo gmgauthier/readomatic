@@ -2,14 +2,19 @@
 
 #include "main_window.hpp"
 #include "about_dialog.hpp"
+#include "font_dialog.hpp"
 #include "paths.hpp"
 #include "config.hpp"
 
+#include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <sstream>
+
+#include <pango/pangocairo.h>
 
 #include <glibmm/fileutils.h>
 #include <glibmm/miscutils.h>
@@ -100,6 +105,8 @@ MainWindow::MainWindow()
   set_status("No book open.");
   rebuild_recent();
   rebuild_bookmarks();
+  ensure_user_fonts();
+  apply_topic_chrome();
 
   add(root_);
   show_all();
@@ -138,9 +145,7 @@ void MainWindow::build_menu()
   file->append(*recent_item);
   add_item(*file, "_Close", sigc::mem_fun(*this, &MainWindow::on_close_book));
   file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
-  add_item(*file, "_Print…",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
-                      Glib::ustring("Print")));
+  add_item(*file, "_Print…", sigc::mem_fun(*this, &MainWindow::on_print));
   file->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
   add_item(*file, "E_xit", sigc::mem_fun(*this, &MainWindow::on_quit));
   add_menu("_File", *file);
@@ -154,9 +159,7 @@ void MainWindow::build_menu()
   add_menu("_Bookmark", bookmark_menu_);
 
   auto* options = Gtk::manage(new Gtk::Menu());
-  add_item(*options, "_Font…",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
-                      Glib::ustring("Font")));
+  add_item(*options, "_Appearance…", sigc::mem_fun(*this, &MainWindow::on_font));
   add_menu("_Options", *options);
 
   auto* help = Gtk::manage(new Gtk::Menu());
@@ -197,9 +200,7 @@ void MainWindow::build_toolbar()
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_spine_step), -1));
   btn_next_.signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_spine_step), 1));
-  btn_print_.signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
-                 Glib::ustring("Print")));
+  btn_print_.signal_clicked().connect(sigc::mem_fun(*this, &MainWindow::on_print));
 
   toolbar_.pack_start(btn_contents_, Gtk::PACK_SHRINK);
   toolbar_.pack_start(btn_index_, Gtk::PACK_SHRINK);
@@ -219,6 +220,7 @@ void MainWindow::build_toolbar()
 void MainWindow::style_list_column(Gtk::TreeView& view)
 {
   view.set_hscroll_policy(Gtk::SCROLL_MINIMUM);
+  view.set_level_indentation(0);
   if (auto* col = view.get_column(0)) {
     col->set_sizing(Gtk::TREE_VIEW_COLUMN_FIXED);
     col->set_expand(true);
@@ -236,8 +238,11 @@ void MainWindow::style_list_column(Gtk::TreeView& view)
 void MainWindow::snap_nav_left(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll)
 {
   auto snap = [](const Glib::RefPtr<Gtk::Adjustment>& adj) {
-    if (adj && adj->get_value() != adj->get_lower())
-      adj->set_value(adj->get_lower());
+    if (!adj)
+      return;
+    const double lo = adj->get_lower();
+    if (adj->get_value() != lo)
+      adj->set_value(lo);
   };
   snap(scroll.get_hadjustment());
   snap(view.get_hadjustment());
@@ -262,6 +267,21 @@ void MainWindow::keep_nav_left(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll)
   if (view.get_realized())
     hook();
   view.signal_realize().connect(hook);
+  view.signal_map().connect([this, v, s]() {
+    snap_nav_left(*v, *s);
+    Glib::signal_idle().connect(
+        [this, v, s]() {
+          snap_nav_left(*v, *s);
+          v->queue_resize();
+          return false;
+        },
+        Glib::PRIORITY_LOW);
+  });
+  view.signal_size_allocate().connect([this, v, s](Gtk::Allocation&) {
+    snap_nav_left(*v, *s);
+  });
+  view.signal_cursor_changed().connect([this, v, s]() { snap_nav_left(*v, *s); });
+  scroll.property_hadjustment().signal_changed().connect([hook]() { hook(); });
 }
 
 void MainWindow::scroll_nav_vertically(Gtk::TreeView& view, const Gtk::TreeModel::Path& path)
@@ -339,6 +359,7 @@ void MainWindow::build_body()
   index_view_.set_activate_on_single_click(true);
   index_view_.set_enable_search(true);
   index_view_.get_style_context()->add_class("readomatic-nav");
+  index_view_.get_style_context()->add_class("readomatic-nav-flat");
   style_list_column(index_view_);
   index_view_.signal_row_activated().connect(
       sigc::mem_fun(*this, &MainWindow::on_index_activated));
@@ -362,6 +383,7 @@ void MainWindow::build_body()
   find_view_.set_activate_on_single_click(true);
   find_view_.set_enable_search(false);
   find_view_.get_style_context()->add_class("readomatic-nav");
+  find_view_.get_style_context()->add_class("readomatic-nav-flat");
   style_list_column(find_view_);
   if (auto* col = find_view_.get_column(0)) {
     const auto cells = col->get_cells();
@@ -547,6 +569,7 @@ void MainWindow::fill_index()
     (*it)[col_href_] = e.href;
     (*it)[col_occ_] = 0;
   }
+  relayout_nav(index_view_, index_scroll_);
 }
 
 void MainWindow::on_contents_cell_data(Gtk::CellRenderer* cell,
@@ -669,6 +692,7 @@ void MainWindow::on_index_activated(const Gtk::TreeModel::Path& path, Gtk::TreeV
     return;
   history_.update_scroll(topic_scroll());
   on_jump(href);
+  snap_nav_left(index_view_, index_scroll_);
 }
 
 void MainWindow::on_find()
@@ -888,17 +912,158 @@ void MainWindow::on_nav_page(int page)
   nav_.set_current_page(page);
   if (page == 2) {
     find_entry_.grab_focus();
-    snap_nav_left(find_view_, find_scroll_);
+    relayout_nav(find_view_, find_scroll_);
   } else if (page == 0) {
-    snap_nav_left(contents_view_, contents_scroll_);
+    relayout_nav(contents_view_, contents_scroll_);
   } else if (page == 1) {
-    snap_nav_left(index_view_, index_scroll_);
+    relayout_nav(index_view_, index_scroll_);
   }
+  Glib::signal_idle().connect(
+      [this, page]() {
+        if (page == 0)
+          snap_nav_left(contents_view_, contents_scroll_);
+        else if (page == 1)
+          snap_nav_left(index_view_, index_scroll_);
+        else
+          snap_nav_left(find_view_, find_scroll_);
+        return false;
+      },
+      Glib::PRIORITY_LOW);
 }
 
 void MainWindow::on_not_yet(const Glib::ustring& feature)
 {
   set_status(feature + " arrives after this stub.");
+}
+
+void MainWindow::apply_topic_chrome()
+{
+  topic_view_.apply_appearance(settings_.font_family, settings_.font_size, settings_.font_weight,
+                               settings_.palette);
+}
+
+void MainWindow::on_font()
+{
+  FontDialog dlg(*this, settings_, topic_view_);
+  if (dlg.run() == Gtk::RESPONSE_OK)
+    persist();
+}
+
+void MainWindow::on_print()
+{
+  if (!book_.is_open()) {
+    set_status("No book open.");
+    return;
+  }
+  const Glib::ustring text = topic_view_.get_buffer()->get_text();
+  if (text.empty()) {
+    set_status("Nothing to print.");
+    return;
+  }
+
+  struct Job {
+    Glib::RefPtr<Pango::Layout> layout;
+    double page_h = 0;
+  };
+  auto job = std::make_shared<Job>();
+  auto op = Gtk::PrintOperation::create();
+  op->set_job_name(book_.title().empty() ? "Read-O-Matic" : book_.title());
+  op->set_embed_page_setup(true);
+  op->signal_begin_print().connect(
+      [this, op, job, text](const Glib::RefPtr<Gtk::PrintContext>& ctx) {
+        job->layout = ctx->create_pango_layout();
+        Pango::FontDescription desc;
+        desc.set_family(settings_.font_family.empty() ? "Serif" : settings_.font_family);
+        desc.set_size(std::max(8, settings_.font_size) * Pango::SCALE);
+        desc.set_weight(static_cast<Pango::Weight>(settings_.font_weight));
+        job->layout->set_font_description(desc);
+        job->layout->set_width(static_cast<int>(ctx->get_width() * Pango::SCALE));
+        job->layout->set_wrap(Pango::WRAP_WORD_CHAR);
+        job->layout->set_text(text);
+        int tw = 0, th = 0;
+        job->layout->get_size(tw, th);
+        job->page_h = ctx->get_height();
+        const double layout_h = th / static_cast<double>(Pango::SCALE);
+        int n = 1;
+        if (job->page_h > 1.0)
+          n = std::max(1, static_cast<int>(std::ceil(layout_h / job->page_h)));
+        op->set_n_pages(n);
+      });
+  op->signal_draw_page().connect(
+      [job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int page) {
+        auto cr = ctx->get_cairo_context();
+        cr->save();
+        cr->rectangle(0, 0, ctx->get_width(), ctx->get_height());
+        cr->clip();
+        cr->move_to(0, -page * job->page_h);
+        pango_cairo_show_layout(cr->cobj(), job->layout->gobj());
+        cr->restore();
+      });
+  try {
+    const auto result = op->run(Gtk::PRINT_OPERATION_ACTION_PRINT_DIALOG, *this);
+    if (result == Gtk::PRINT_OPERATION_RESULT_APPLY)
+      set_status("Sent to printer.");
+    else if (result == Gtk::PRINT_OPERATION_RESULT_ERROR)
+      set_status("Print failed.");
+  } catch (const Gtk::PrintError& e) {
+    set_status(Glib::ustring("Print failed: ") + e.what());
+  }
+}
+
+bool MainWindow::in_editable_focus() const
+{
+  return dynamic_cast<const Gtk::Entry*>(get_focus()) != nullptr;
+}
+
+bool MainWindow::on_key_press_event(GdkEventKey* event)
+{
+  if (!event)
+    return Gtk::Window::on_key_press_event(event);
+  const guint mods = event->state & (Gdk::CONTROL_MASK | Gdk::MOD1_MASK | Gdk::SHIFT_MASK);
+  const bool ctrl = (event->state & Gdk::CONTROL_MASK) != 0;
+  const bool alt = (event->state & Gdk::MOD1_MASK) != 0;
+  const guint key = event->keyval;
+
+  if (ctrl && !alt && (key == GDK_KEY_o || key == GDK_KEY_O)) {
+    on_open();
+    return true;
+  }
+  if (ctrl && !alt && (key == GDK_KEY_f || key == GDK_KEY_F)) {
+    on_nav_page(2);
+    return true;
+  }
+  if (key == GDK_KEY_Escape) {
+    find_store_->clear();
+    find_current_path_.clear();
+    find_hover_path_.clear();
+    last_find_query_.clear();
+    find_entry_.set_text("");
+    if (book_.is_open())
+      set_status(book_.title());
+    else
+      set_status("No book open.");
+    topic_view_.grab_focus();
+    return true;
+  }
+
+  if (in_editable_focus() && dynamic_cast<Gtk::Entry*>(get_focus()))
+    return Gtk::Window::on_key_press_event(event);
+
+  if (key == GDK_KEY_BackSpace && mods == 0) {
+    on_back();
+    return true;
+  }
+  if ((alt && (key == GDK_KEY_Left || key == GDK_KEY_KP_Left)) ||
+      (mods == 0 && key == GDK_KEY_bracketleft)) {
+    on_spine_step(-1);
+    return true;
+  }
+  if ((alt && (key == GDK_KEY_Right || key == GDK_KEY_KP_Right)) ||
+      (mods == 0 && key == GDK_KEY_bracketright)) {
+    on_spine_step(1);
+    return true;
+  }
+  return Gtk::Window::on_key_press_event(event);
 }
 
 std::string MainWindow::book_key() const

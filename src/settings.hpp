@@ -35,6 +35,10 @@ struct Settings {
   int window_h = 560;
   int paned = 220;
   std::string library_dir;
+  std::string font_family = "Serif";
+  int font_size = 12;
+  int font_weight = 400;
+  int palette = 1;  // 0 white, 1 eggshell, 2 dark
   std::vector<RecentItem> recent;
   std::map<std::string, BookRecord> books;
 

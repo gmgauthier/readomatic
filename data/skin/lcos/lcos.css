@@ -12,12 +12,24 @@ window.readomatic-window {
   color: #1A1A1A;
 }
 
+.readomatic-topic text selection,
+textview.readomatic-topic text selection {
+  background-color: #3D6AA8;
+  color: #FFFFFF;
+}
+
 .readomatic-nav {
   background-color: #FFFFFF;
   color: #000000;
   font-weight: bold;
   padding: 0;
   -GtkTreeView-horizontal-separator: 0;
+}
+
+treeview.readomatic-nav-flat {
+  -GtkTreeView-expander-size: 0;
+  -GtkTreeView-horizontal-separator: 0;
+  padding: 0;
 }
 
 treeview.readomatic-nav row:hover {

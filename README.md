@@ -10,9 +10,9 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M4 in tree.** Bookmarks, Open Recent, and last topic restore. Toolbar **Library** is a stub (coming soon). Samples in `data/samples/` (git-only).
+**M5 in tree.** Print, topic font (family/size/weight, including fonts in `~/.local/share/fonts`), three page colors, and keyboard shortcuts. Samples in `data/samples/` (git-only).
 
-Next: **M5 — Print + font + keys** (see [DEVELOPMENT.md](DEVELOPMENT.md)).
+Next: **M6 — Package** (see [DEVELOPMENT.md](DEVELOPMENT.md)).
 
 | Doc | What |
 |---|---|

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <functional>
 
 namespace readomatic {
@@ -90,6 +91,92 @@ void TopicView::ensure_tags()
     t->property_background() = "#404040";
     t->property_foreground() = "#FFFFFF";
   });
+}
+
+void TopicView::apply_appearance(const std::string& family, int size_pt, int weight, int palette)
+{
+  const char* bg = "#F7F5EF";
+  const char* fg = "#1A1A1A";
+  const char* link = "#0B3A96";
+  const char* hit_bg = "#404040";
+  const char* hit_fg = "#FFFFFF";
+  const char* sel_bg = "#3D6AA8";
+  const char* sel_fg = "#FFFFFF";
+  if (palette == 0) {
+    bg = "#FFFFFF";
+    fg = "#000000";
+  } else if (palette == 2) {
+    bg = "#111111";
+    fg = "#D8D8D8";
+    link = "#8CB4E8";
+    hit_bg = "#C8C8C8";
+    hit_fg = "#111111";
+    sel_bg = "#8CB4E8";
+    sel_fg = "#111111";
+  }
+
+  Pango::FontDescription desc;
+  desc.set_family(family.empty() ? "Serif" : family);
+  desc.set_size(std::max(8, std::min(size_pt, 32)) * Pango::SCALE);
+  desc.set_weight(static_cast<Pango::Weight>(weight));
+  override_font(desc);
+
+  std::string fam_css = "\"";
+  for (char c : desc.get_family()) {
+    if (c == '"' || c == '\\')
+      fam_css += '\\';
+    fam_css += c;
+  }
+  fam_css += "\"";
+
+  char css[1024];
+  std::snprintf(css, sizeof(css),
+                ".readomatic-topic, .readomatic-topic text {\n"
+                "  background-color: %s;\n"
+                "  color: %s;\n"
+                "  font-family: %s;\n"
+                "  font-size: %dpt;\n"
+                "  font-weight: %d;\n"
+                "}\n"
+                ".readomatic-topic text selection,\n"
+                "textview.readomatic-topic text selection {\n"
+                "  background-color: %s;\n"
+                "  color: %s;\n"
+                "}\n",
+                bg, fg, fam_css.c_str(), std::max(8, std::min(size_pt, 32)), weight, sel_bg,
+                sel_fg);
+
+  if (!chrome_css_) {
+    chrome_css_ = Gtk::CssProvider::create();
+    get_style_context()->add_provider(chrome_css_, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 50);
+    Gtk::StyleContext::add_provider_for_screen(Gdk::Screen::get_default(), chrome_css_,
+                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 50);
+  }
+  try {
+    chrome_css_->load_from_data(css);
+  } catch (const Glib::Error&) {
+  }
+
+  Gdk::RGBA bg_rgba;
+  bg_rgba.set(bg);
+  override_background_color(bg_rgba);
+  Gdk::RGBA fg_rgba;
+  fg_rgba.set(fg);
+  override_color(fg_rgba);
+  Gdk::RGBA sel_bg_rgba;
+  sel_bg_rgba.set(sel_bg);
+  override_background_color(sel_bg_rgba, Gtk::STATE_FLAG_SELECTED);
+  Gdk::RGBA sel_fg_rgba;
+  sel_fg_rgba.set(sel_fg);
+  override_color(sel_fg_rgba, Gtk::STATE_FLAG_SELECTED);
+
+  auto table = buf_->get_tag_table();
+  if (auto t = table->lookup("link"))
+    t->property_foreground() = link;
+  if (auto t = table->lookup("find-hit")) {
+    t->property_background() = hit_bg;
+    t->property_foreground() = hit_fg;
+  }
 }
 
 void TopicView::clear_topic()

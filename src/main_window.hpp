@@ -29,6 +29,8 @@ class MainWindow : public Gtk::Window {
   void on_about();
   void on_define_bookmark();
   void on_library();
+  void on_font();
+  void on_print();
   void persist();
   void persist_book();
   void rebuild_recent();
@@ -64,6 +66,11 @@ class MainWindow : public Gtk::Window {
   double topic_scroll() const;
   void set_topic_scroll(double value);
   void on_not_yet(const Glib::ustring& feature);
+  void apply_topic_chrome();
+  bool in_editable_focus() const;
+
+ protected:
+  bool on_key_press_event(GdkEventKey* event) override;
 
   Gtk::Box root_{Gtk::ORIENTATION_VERTICAL, 0};
   Gtk::MenuBar menubar_;

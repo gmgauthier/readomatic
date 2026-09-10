@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-09-09)
 
-**M4 is in the tree.** Bookmarks (Define + menu), File → Open Recent, last topic/window restored from `~/.config/readomatic/readomatic.ini`. Toolbar **Library** is a stub (tooltip “coming soon”).
+**M5 is in the tree.** Print the current topic. Options → Appearance… sets family (system + `~/.local/share/fonts`), size, weight, and one of three page colors. Keys: BackSpace Back, `[` `]` or Alt+arrows spine, Ctrl+F Find, Ctrl+O Open, Escape clears Find.
 
-Next: **M5 — Print + font + keys.**
+Next: **M6 — Package.**
 
 ## 1. Locked decisions
 
@@ -74,7 +74,7 @@ Print…
 Exit
 ```
 
-Edit: Copy (selection in the topic). Bookmark: Define… / list of this book’s marks. Options: Font… (size). Help: About.
+Edit: Copy (selection in the topic). Bookmark: Define… / list of this book’s marks. Options: Appearance… (font, page color). Help: About.
 
 ## 3. Architecture
 
@@ -93,7 +93,8 @@ readomatic
 │   ├── book.{hpp,cpp}           zip + OPF + spine
 │   ├── topic_view.{hpp,cpp}     XHTML → TextView tags
 │   ├── history.hpp              M2: Back stack
-│   └── settings.{hpp,cpp}       M4: ini, recent, bookmarks
+│   ├── settings.{hpp,cpp}       M4: ini, recent, bookmarks; M5: font/palette
+│   └── font_dialog.{hpp,cpp}    M5: Options → Appearance…
 ├── meson.build                 version 0.1.0
 ├── README.md
 └── DEVELOPMENT.md
@@ -197,9 +198,9 @@ Toolbar **Library** (far right): stub. Tooltip and status “coming soon”. The
 
 Done when: quit mid-chapter, reopen the same EPUB, land on that topic.
 
-### M5 — Print + font + keys
+### M5 — Print + font + keys — **in tree 2026-09-10**
 
-Print current topic (`Gtk::PrintOperation`). Options → Font… (topic size, persist). Keyboard: BackSpace = Back, `Alt+Left`/`Alt+Right` or `[`/`]` = `<<`/`>>`, Ctrl+F focuses Find, Ctrl+O Open, Escape clears Find.
+Print current topic (`Gtk::PrintOperation`). Options → Appearance… (family, size, weight, persist). Page color: black on white, dark-gray on eggshell (default), or light-gray on near-black. Font list is whatever Pango/fontconfig knows, including `~/.local/share/fonts`. Keyboard: BackSpace = Back, `Alt+Left`/`Alt+Right` or `[`/`]` = `<<`/`>>`, Ctrl+F focuses Find, Ctrl+O Open, Escape clears Find.
 
 Done when: a topic prints, font size sticks, keys work with the topic focused.
 
