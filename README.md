@@ -1,12 +1,16 @@
 # Read-O-Matic
 
-![Read-O-Matic window mock](brand/ui-reference.svg)
+![Read-O-Matic on LCOS](brand/screenshot-read.png)
 
 An **EPUB reader** for The Lunduke Computer Operating System (LCOS). The window is WinHelp 4 / OS/2 `VIEW.EXE`, not a web browser.
 
 Binary: `readomatic`. Unlicense.
 
 LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLunduke/LCOS)
+
+![Find](brand/screenshot-find.png)
+
+![About](brand/screenshot-about.png)
 
 ## Status
 
