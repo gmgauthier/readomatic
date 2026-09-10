@@ -1,7 +1,15 @@
 build/
+build-appimage/
 builddir/
+obj-*/
 dist/
 .cache/
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/readomatic/
+debian/*.substvars
+debian/*.debhelper.log
 *.o
 *~
 *.swp

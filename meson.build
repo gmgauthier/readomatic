@@ -61,6 +61,11 @@ install_data(
 
 install_data(
   'brand/icon-tile.svg',
+  install_dir: get_option('datadir') / 'readomatic' / 'brand',
+)
+
+install_data(
+  'brand/icon-tile.svg',
   rename: 'readomatic.svg',
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps',
 )

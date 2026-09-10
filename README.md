@@ -10,9 +10,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M5 in tree.** Print, topic font (family/size/weight, including fonts in `~/.local/share/fonts`), three page colors, and keyboard shortcuts. Samples in `data/samples/` (git-only).
-
-Next: **M6 — Package** (see [DEVELOPMENT.md](DEVELOPMENT.md)).
+**M6 in tree.** `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
 
 | Doc | What |
 |---|---|
@@ -26,6 +24,10 @@ meson setup build
 meson compile -C build
 ./build/readomatic
 ```
+
+## Install
+
+Preferred: `./scripts/release.sh deb` then `sudo apt install ./dist/readomatic_0.1.0-1_amd64.deb`. Details in [INSTALL.md](INSTALL.md).
 
 ## License
 

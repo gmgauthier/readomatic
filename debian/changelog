@@ -1,0 +1,5 @@
+readomatic (0.1.0-1) unstable; urgency=medium
+
+  * Initial package. gtkmm-3 EPUB reader for LCOS (milestones M0–M6).
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Thu, 10 Sep 2026 18:04:04 +0100

@@ -25,6 +25,9 @@ std::string find_data_file(const std::string& relative)
   if (const char* env = g_getenv("READOMATIC_DATA"))
     roots.emplace_back(env);
 
+  if (const char* appdir = g_getenv("APPDIR"))
+    roots.emplace_back(Glib::build_filename(appdir, "usr/share/readomatic"));
+
   roots.emplace_back(SOURCE_ROOT);
   roots.emplace_back(std::string(SOURCE_ROOT) + "/data");
   roots.emplace_back(DATADIR);

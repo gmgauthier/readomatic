@@ -9,9 +9,9 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-09-09)
 
-**M5 is in the tree.** Print the current topic. Options → Appearance… sets family (system + `~/.local/share/fonts`), size, weight, and one of three page colors. Keys: BackSpace Back, `[` `]` or Alt+arrows spine, Ctrl+F Find, Ctrl+O Open, Escape clears Find.
+**M6 is in the tree.** `debian/` + `scripts/release.sh` produce `.deb`, `meson dist` tarball, and an AppImage fallback. Samples stay git-only.
 
-Next: **M6 — Package.**
+v1.0 packaging is this slice. Later: Library window, Contents tree lines.
 
 ## 1. Locked decisions
 
@@ -95,8 +95,11 @@ readomatic
 │   ├── history.hpp              M2: Back stack
 │   ├── settings.{hpp,cpp}       M4: ini, recent, bookmarks; M5: font/palette
 │   └── font_dialog.{hpp,cpp}    M5: Options → Appearance…
+├── debian/                     native package
+├── scripts/release.sh
 ├── meson.build                 version 0.1.0
 ├── README.md
+├── INSTALL.md
 └── DEVELOPMENT.md
 ```
 
@@ -204,7 +207,7 @@ Print current topic (`Gtk::PrintOperation`). Options → Appearance… (family, 
 
 Done when: a topic prints, font size sticks, keys work with the topic focused.
 
-### M6 — Package
+### M6 — Package — **in tree 2026-09-10**
 
 Same pipeline as EarBlaster: in-tree `debian/`, `scripts/release.sh` → `.deb`, `meson dist` tarball, AppImage fallback (gtkmm only; no GStreamer). `/usr/bin/readomatic`, hicolor icon, skin + brand under `/usr/share/readomatic/`.
 

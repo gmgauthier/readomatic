@@ -1,0 +1,29 @@
+Source: readomatic
+Section: text
+Priority: optional
+Maintainer: Greg Gauthier <gmgauthier@protonmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ meson (>= 0.56),
+ ninja-build,
+ pkg-config,
+ g++,
+ libgtkmm-3.0-dev,
+ libarchive-dev,
+ libxml2-dev,
+ libfontconfig1-dev
+Standards-Version: 4.7.0
+Homepage: https://gitea.scriptorium/gmgauthier/readomatic
+Vcs-Git: https://gitea.scriptorium/gmgauthier/readomatic.git
+Vcs-Browser: https://gitea.scriptorium/gmgauthier/readomatic
+Rules-Requires-Root: no
+
+Package: readomatic
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: EPUB reader for The Lunduke Computer Operating System
+ Read-O-Matic is a single-window gtkmm-3 EPUB reader in the WinHelp 4 /
+ OS/2 VIEW.EXE shape. Local EPUB files only, one LCOS-flavoured skin,
+ no browser engine.
