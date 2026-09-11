@@ -1,5 +1,7 @@
 # Read-O-Matic
 
+**Vended by Grok Build**
+
 ![Read-O-Matic on LCOS](brand/screenshot-read.png)
 
 An **EPUB reader** for The Lunduke Computer Operating System (LCOS). The window is WinHelp 4 / OS/2 `VIEW.EXE`, not a web browser.
