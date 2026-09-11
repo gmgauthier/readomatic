@@ -249,7 +249,7 @@ meson compile -C build
 - Binary never runs as root
 - Depends: GTK3, libarchive, libxml2 (plus WebKit **only** if M1 switched)
 - Recommends nothing that pulls a browser
-- Prefer `.deb`. AppImage is fallback (no codec bundle problem here)
+- Prefer `.deb` on Debian/LCOS. Publish the AppImage on the release as the fallback for distros that do not install `.deb`.
 - Public clone: GitHub. Origin: Gitea
 
 ## 8. Test matrix (v1)
