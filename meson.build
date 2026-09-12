@@ -1,7 +1,7 @@
 project(
   'readomatic',
   'cpp',
-  version: '0.1.0',
+  version: '0.1.1',
   license: 'Unlicense',
   meson_version: '>=0.56',
   default_options: [

@@ -33,7 +33,7 @@ meson compile -C build
 
 ## Install
 
-Preferred: `./scripts/release.sh deb` then `sudo apt install ./dist/readomatic_0.1.0-1_amd64.deb`. Details in [INSTALL.md](INSTALL.md).
+Preferred: `./scripts/release.sh deb` then `sudo apt install ./dist/readomatic_0.1.1-1_amd64.deb`. Details in [INSTALL.md](INSTALL.md).
 
 ## License
 

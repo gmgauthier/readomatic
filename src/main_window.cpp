@@ -38,13 +38,21 @@ void paint_nav_cell(Gtk::CellRenderer* cell,
 {
   if (!cell)
     return;
-  const bool on = (current.size() > 0 && path.size() > 0 && path == current) ||
-                  (hover.size() > 0 && path.size() > 0 && path == hover);
-  if (on) {
-    cell->property_cell_background() = "#C4C4BC";
+  const bool is_cur = current.size() > 0 && path.size() > 0 && path == current;
+  const bool is_hov = hover.size() > 0 && path.size() > 0 && path == hover;
+  auto* text = dynamic_cast<Gtk::CellRendererText*>(cell);
+  if (is_cur || is_hov) {
+    const char* color = is_cur ? "#8AADC8" : "#C5D4E8";
+    cell->property_cell_background() = color;
     cell->property_cell_background_set() = true;
+    if (text) {
+      text->property_background() = color;
+      text->property_background_set() = true;
+    }
   } else {
     cell->property_cell_background_set() = false;
+    if (text)
+      text->property_background_set() = false;
   }
 }
 

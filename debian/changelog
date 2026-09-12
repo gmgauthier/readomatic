@@ -1,3 +1,9 @@
+readomatic (0.1.1-1) unstable; urgency=medium
+
+  * Nav hover/sticky matches Partyline (#C5D4E8 / #8AADC8).
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sat, 12 Sep 2026 17:45:00 +0100
+
 readomatic (0.1.0-1) unstable; urgency=medium
 
   * Initial package. gtkmm-3 EPUB reader for LCOS (milestones M0–M6).
