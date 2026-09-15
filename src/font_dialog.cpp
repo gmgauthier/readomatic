@@ -37,8 +37,7 @@ void ensure_user_fonts()
   if (done)
     return;
   done = true;
-  const std::string dir =
-      Glib::build_filename(Glib::get_home_dir(), ".local", "share", "fonts");
+  const std::string dir = Glib::build_filename(Glib::get_home_dir(), ".local", "share", "fonts");
   if (g_file_test(dir.c_str(), G_FILE_TEST_IS_DIR))
     FcConfigAppFontAddDir(nullptr, reinterpret_cast<const FcChar8*>(dir.c_str()));
 }

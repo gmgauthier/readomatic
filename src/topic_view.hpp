@@ -21,7 +21,10 @@ class TopicView : public Gtk::TextView {
   bool select_match(const Glib::ustring& query, int occurrence);
   void apply_appearance(const std::string& family, int size_pt, int weight, int palette);
 
-  sigc::signal<void, Glib::ustring>& signal_jump() { return signal_jump_; }
+  sigc::signal<void, Glib::ustring>& signal_jump()
+  {
+    return signal_jump_;
+  }
 
  protected:
   bool on_button_release_event(GdkEventButton* event) override;

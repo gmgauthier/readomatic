@@ -20,14 +20,14 @@ AboutDialog::AboutDialog(Gtk::Window& parent)
   title->set_markup("<b>Read-O-Matic " VERSION "</b>");
   box->pack_start(*title, Gtk::PACK_SHRINK);
 
-  auto* line = Gtk::manage(new Gtk::Label(
-      "Read-O-Matic — an EPUB reader for The Lunduke Computer Operating System."));
+  auto* line = Gtk::manage(
+      new Gtk::Label("Read-O-Matic — an EPUB reader for The Lunduke Computer Operating System."));
   line->set_line_wrap(true);
   line->set_max_width_chars(52);
   box->pack_start(*line, Gtk::PACK_SHRINK);
 
-  auto* guest = Gtk::manage(new Gtk::Label(
-      "Third-party software written for LCOS. Not LCOS house software."));
+  auto* guest = Gtk::manage(
+      new Gtk::Label("Third-party software written for LCOS. Not LCOS house software."));
   guest->set_line_wrap(true);
   guest->set_max_width_chars(52);
   box->pack_start(*guest, Gtk::PACK_SHRINK);

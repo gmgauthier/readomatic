@@ -72,17 +72,32 @@ void TopicView::ensure_tags()
     fn(tag);
     table->add(tag);
   };
-  mk("h1", [](auto t) { t->property_weight() = Pango::WEIGHT_BOLD; t->property_scale() = 1.6; });
-  mk("h2", [](auto t) { t->property_weight() = Pango::WEIGHT_BOLD; t->property_scale() = 1.35; });
-  mk("h3", [](auto t) { t->property_weight() = Pango::WEIGHT_BOLD; t->property_scale() = 1.2; });
-  mk("h4", [](auto t) { t->property_weight() = Pango::WEIGHT_BOLD; t->property_scale() = 1.1; });
+  mk("h1", [](auto t) {
+    t->property_weight() = Pango::WEIGHT_BOLD;
+    t->property_scale() = 1.6;
+  });
+  mk("h2", [](auto t) {
+    t->property_weight() = Pango::WEIGHT_BOLD;
+    t->property_scale() = 1.35;
+  });
+  mk("h3", [](auto t) {
+    t->property_weight() = Pango::WEIGHT_BOLD;
+    t->property_scale() = 1.2;
+  });
+  mk("h4", [](auto t) {
+    t->property_weight() = Pango::WEIGHT_BOLD;
+    t->property_scale() = 1.1;
+  });
   mk("em", [](auto t) { t->property_style() = Pango::STYLE_ITALIC; });
   mk("strong", [](auto t) { t->property_weight() = Pango::WEIGHT_BOLD; });
   mk("pre", [](auto t) {
     t->property_family() = "monospace";
     t->property_wrap_mode() = Gtk::WRAP_NONE;
   });
-  mk("blockquote", [](auto t) { t->property_left_margin() = 24; t->property_style() = Pango::STYLE_ITALIC; });
+  mk("blockquote", [](auto t) {
+    t->property_left_margin() = 24;
+    t->property_style() = Pango::STYLE_ITALIC;
+  });
   mk("link", [](auto t) {
     t->property_underline() = Pango::UNDERLINE_SINGLE;
     t->property_foreground() = "#0B3A96";
@@ -216,7 +231,7 @@ std::string TopicView::resolve_src(const std::string& src, const std::string& ba
     s = s.substr(0, hash);
   if (s.empty())
     return {};
-  if (s[0] == '/' )
+  if (s[0] == '/')
     return s;
   if (base_dir.empty())
     return s;
@@ -262,9 +277,9 @@ void TopicView::walk(xmlNode* node, const std::string& base_dir, int list_depth)
       continue;
     }
 
-    if (name == "p" || name == "div" || name == "blockquote" || name == "li" ||
-        name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" ||
-        name == "h6" || name == "pre" || name == "tr") {
+    if (name == "p" || name == "div" || name == "blockquote" || name == "li" || name == "h1" ||
+        name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" ||
+        name == "pre" || name == "tr") {
       if (buf_->get_char_count() > 0)
         insert_break();
     }
@@ -295,8 +310,7 @@ void TopicView::walk(xmlNode* node, const std::string& base_dir, int list_depth)
     }
 
     if (name == "li") {
-      insert_text(std::string(static_cast<size_t>(list_depth + 1) * 2, ' ') + "• ",
-                  tag_stack_);
+      insert_text(std::string(static_cast<size_t>(list_depth + 1) * 2, ' ') + "• ", tag_stack_);
     }
 
     if (!pushed.empty())
@@ -317,9 +331,9 @@ void TopicView::walk(xmlNode* node, const std::string& base_dir, int list_depth)
     if (!pushed.empty() && !tag_stack_.empty() && tag_stack_.back() == pushed)
       tag_stack_.pop_back();
 
-    if (name == "p" || name == "div" || name == "blockquote" || name == "li" ||
-        name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" ||
-        name == "h6" || name == "pre")
+    if (name == "p" || name == "div" || name == "blockquote" || name == "li" || name == "h1" ||
+        name == "h2" || name == "h3" || name == "h4" || name == "h5" || name == "h6" ||
+        name == "pre")
       insert_break();
   }
 }
@@ -332,8 +346,7 @@ void TopicView::load_xhtml(const std::string& xhtml, const std::string& base_dir
     buf_->set_text("(empty document)");
     return;
   }
-  xmlDoc* doc = htmlReadMemory(xhtml.data(), static_cast<int>(xhtml.size()), "topic.xhtml",
-                               "UTF-8",
+  xmlDoc* doc = htmlReadMemory(xhtml.data(), static_cast<int>(xhtml.size()), "topic.xhtml", "UTF-8",
                                HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING |
                                    HTML_PARSE_NONET | HTML_PARSE_NOBLANKS);
   if (!doc) {

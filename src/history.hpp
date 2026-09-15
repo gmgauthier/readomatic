@@ -15,7 +15,10 @@ class History {
     double scroll = 0;
   };
 
-  void clear() { stack_.clear(); }
+  void clear()
+  {
+    stack_.clear();
+  }
 
   void push(const std::string& href, const std::string& fragment)
   {
@@ -39,7 +42,10 @@ class History {
     return true;
   }
 
-  bool empty() const { return stack_.empty(); }
+  bool empty() const
+  {
+    return stack_.empty();
+  }
 
  private:
   std::vector<Entry> stack_;
