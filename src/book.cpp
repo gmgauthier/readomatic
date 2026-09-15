@@ -93,8 +93,7 @@ std::string html_name(xmlNode* n)
 std::string squeeze_ws(std::string s)
 {
   for (size_t i = 0; i + 1 < s.size();) {
-    if (static_cast<unsigned char>(s[i]) == 0xC2 &&
-        static_cast<unsigned char>(s[i + 1]) == 0xA0) {
+    if (static_cast<unsigned char>(s[i]) == 0xC2 && static_cast<unsigned char>(s[i + 1]) == 0xA0) {
       s[i] = ' ';
       s.erase(i + 1, 1);
     } else {
@@ -311,8 +310,7 @@ bool Book::extract_zip(const std::string& path)
   gchar* hex = g_compute_checksum_for_string(G_CHECKSUM_SHA256, path.c_str(), path.size());
   const std::string hash = hex ? std::string(hex, 16) : std::string("book");
   g_free(hex);
-  extract_dir_ = Glib::build_filename(Glib::get_user_cache_dir(), "readomatic", "books",
-                                      hash);
+  extract_dir_ = Glib::build_filename(Glib::get_user_cache_dir(), "readomatic", "books", hash);
   std::error_code ec;
   fs::remove_all(extract_dir_, ec);
   fs::create_directories(extract_dir_, ec);
@@ -332,7 +330,7 @@ bool Book::extract_zip(const std::string& path)
 
   archive* ext = archive_write_disk_new();
   archive_write_disk_set_options(ext, ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_SECURE_NODOTDOT |
-                                           ARCHIVE_EXTRACT_SECURE_SYMLINKS);
+                                          ARCHIVE_EXTRACT_SECURE_SYMLINKS);
 
   bool ok = true;
   archive_entry* entry = nullptr;
@@ -361,8 +359,7 @@ bool Book::extract_zip(const std::string& path)
 
 bool Book::parse_container()
 {
-  const std::string container =
-      Glib::build_filename(extract_dir_, "META-INF", "container.xml");
+  const std::string container = Glib::build_filename(extract_dir_, "META-INF", "container.xml");
   if (!Glib::file_test(container, Glib::FILE_TEST_IS_REGULAR)) {
     set_error("No META-INF/container.xml.");
     return false;
@@ -491,7 +488,8 @@ bool Book::parse_nav()
   const std::string path = resolve(href);
   if (path.empty() || !Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR))
     return true;
-  xmlDoc* doc = xmlReadFile(path.c_str(), nullptr, XML_PARSE_NONET | XML_PARSE_NOBLANKS | XML_PARSE_RECOVER);
+  xmlDoc* doc =
+      xmlReadFile(path.c_str(), nullptr, XML_PARSE_NONET | XML_PARSE_NOBLANKS | XML_PARSE_RECOVER);
   if (!doc)
     return true;
   xmlNode* root = xmlDocGetRootElement(doc);

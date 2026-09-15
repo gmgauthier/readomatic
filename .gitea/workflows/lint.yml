@@ -1,0 +1,20 @@
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-gitea
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install lint tools
+        run: |
+          apt update
+          apt -y --no-install-recommends install clang-format cppcheck
+
+      - name: Lint src (check only)
+        run: ./scripts/lint.sh

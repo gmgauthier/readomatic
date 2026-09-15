@@ -61,8 +61,8 @@ std::string Settings::key_for(const std::string& id)
 {
   if (id.empty())
     return "unknown";
-  gchar* hex = g_compute_checksum_for_string(G_CHECKSUM_SHA256, id.c_str(),
-                                             static_cast<gssize>(id.size()));
+  gchar* hex =
+      g_compute_checksum_for_string(G_CHECKSUM_SHA256, id.c_str(), static_cast<gssize>(id.size()));
   std::string k = hex ? std::string(hex, 16) : std::string("unknown");
   g_free(hex);
   return k;

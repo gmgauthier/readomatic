@@ -22,8 +22,7 @@
 namespace readomatic {
 namespace {
 
-Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label,
-                        const sigc::slot<void()>& slot)
+Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label, const sigc::slot<void()>& slot)
 {
   auto* item = Gtk::manage(new Gtk::MenuItem(label, true));
   item->signal_activate().connect(slot);
@@ -31,10 +30,8 @@ Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label,
   return item;
 }
 
-void paint_nav_cell(Gtk::CellRenderer* cell,
-                    const Gtk::TreeModel::Path& path,
-                    const Gtk::TreeModel::Path& current,
-                    const Gtk::TreeModel::Path& hover)
+void paint_nav_cell(Gtk::CellRenderer* cell, const Gtk::TreeModel::Path& path,
+                    const Gtk::TreeModel::Path& current, const Gtk::TreeModel::Path& hover)
 {
   if (!cell)
     return;
@@ -61,8 +58,8 @@ bool nav_motion(Gtk::TreeView& view, Gtk::TreeModel::Path& hover, GdkEventMotion
   Gtk::TreeModel::Path path;
   Gtk::TreeViewColumn* col = nullptr;
   int cx = 0, cy = 0, bx = 0, by = 0;
-  view.convert_widget_to_bin_window_coords(static_cast<int>(event->x),
-                                           static_cast<int>(event->y), bx, by);
+  view.convert_widget_to_bin_window_coords(static_cast<int>(event->x), static_cast<int>(event->y),
+                                           bx, by);
   if (view.get_path_at_pos(bx, by, path, col, cx, cy) && path.size() > 0) {
     if (hover.size() == 0 || hover != path) {
       hover = path;
@@ -131,8 +128,8 @@ void MainWindow::load_css()
   try {
     auto css = Gtk::CssProvider::create();
     css->load_from_path(css_path);
-    Gtk::StyleContext::add_provider_for_screen(
-        Gdk::Screen::get_default(), css, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    Gtk::StyleContext::add_provider_for_screen(Gdk::Screen::get_default(), css,
+                                               GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
   } catch (const Glib::Error& e) {
     std::cerr << "readomatic: CSS: " << e.what() << "\n";
   }
@@ -160,8 +157,7 @@ void MainWindow::build_menu()
 
   auto* edit = Gtk::manage(new Gtk::Menu());
   add_item(*edit, "_Copy",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet),
-                      Glib::ustring("Copy")));
+           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet), Glib::ustring("Copy")));
   add_menu("_Edit", *edit);
 
   add_menu("_Bookmark", bookmark_menu_);
@@ -201,8 +197,7 @@ void MainWindow::build_toolbar()
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_nav_page), 0));
   btn_index_.signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_nav_page), 1));
-  btn_find_.signal_clicked().connect(
-      sigc::bind(sigc::mem_fun(*this, &MainWindow::on_nav_page), 2));
+  btn_find_.signal_clicked().connect(sigc::bind(sigc::mem_fun(*this, &MainWindow::on_nav_page), 2));
   btn_back_.signal_clicked().connect(sigc::mem_fun(*this, &MainWindow::on_back));
   btn_prev_.signal_clicked().connect(
       sigc::bind(sigc::mem_fun(*this, &MainWindow::on_spine_step), -1));
@@ -265,9 +260,7 @@ void MainWindow::keep_nav_left(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll)
     auto attach = [this, v, s](const Glib::RefPtr<Gtk::Adjustment>& adj) {
       if (!adj)
         return;
-      adj->signal_value_changed().connect([this, v, s]() {
-        snap_nav_left(*v, *s);
-      });
+      adj->signal_value_changed().connect([this, v, s]() { snap_nav_left(*v, *s); });
     };
     attach(s->get_hadjustment());
     attach(v->get_hadjustment());
@@ -285,9 +278,7 @@ void MainWindow::keep_nav_left(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll)
         },
         Glib::PRIORITY_LOW);
   });
-  view.signal_size_allocate().connect([this, v, s](Gtk::Allocation&) {
-    snap_nav_left(*v, *s);
-  });
+  view.signal_size_allocate().connect([this, v, s](Gtk::Allocation&) { snap_nav_left(*v, *s); });
   view.signal_cursor_changed().connect([this, v, s]() { snap_nav_left(*v, *s); });
   scroll.property_hadjustment().signal_changed().connect([hook]() { hook(); });
 }
@@ -369,8 +360,7 @@ void MainWindow::build_body()
   index_view_.get_style_context()->add_class("readomatic-nav");
   index_view_.get_style_context()->add_class("readomatic-nav-flat");
   style_list_column(index_view_);
-  index_view_.signal_row_activated().connect(
-      sigc::mem_fun(*this, &MainWindow::on_index_activated));
+  index_view_.signal_row_activated().connect(sigc::mem_fun(*this, &MainWindow::on_index_activated));
   index_scroll_.add(index_view_);
   index_scroll_.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
   index_scroll_.set_margin_start(4);
@@ -401,14 +391,13 @@ void MainWindow::build_body()
     }
   }
   find_view_.add_events(Gdk::POINTER_MOTION_MASK | Gdk::LEAVE_NOTIFY_MASK);
-  find_view_.signal_motion_notify_event().connect(
-      sigc::mem_fun(*this, &MainWindow::on_find_motion), false);
-  find_view_.signal_leave_notify_event().connect(
-      sigc::mem_fun(*this, &MainWindow::on_find_leave), false);
-  find_view_.signal_key_press_event().connect(
-      sigc::mem_fun(*this, &MainWindow::on_find_key), false);
-  find_view_.signal_row_activated().connect(
-      sigc::mem_fun(*this, &MainWindow::on_find_activated));
+  find_view_.signal_motion_notify_event().connect(sigc::mem_fun(*this, &MainWindow::on_find_motion),
+                                                  false);
+  find_view_.signal_leave_notify_event().connect(sigc::mem_fun(*this, &MainWindow::on_find_leave),
+                                                 false);
+  find_view_.signal_key_press_event().connect(sigc::mem_fun(*this, &MainWindow::on_find_key),
+                                              false);
+  find_view_.signal_row_activated().connect(sigc::mem_fun(*this, &MainWindow::on_find_activated));
   find_scroll_.add(find_view_);
   find_scroll_.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
   keep_nav_left(find_view_, find_scroll_);
@@ -540,8 +529,8 @@ void MainWindow::show_current(const std::string& fragment)
     history_.push(href, fragment);
   highlight_contents();
   char buf[160];
-  std::snprintf(buf, sizeof(buf), "%s — %d of %d", book_.title().c_str(),
-                book_.spine_index() + 1, book_.spine_count());
+  std::snprintf(buf, sizeof(buf), "%s — %d of %d", book_.title().c_str(), book_.spine_index() + 1,
+                book_.spine_count());
   set_status(buf);
 }
 
@@ -585,8 +574,7 @@ void MainWindow::on_contents_cell_data(Gtk::CellRenderer* cell,
 {
   if (!it)
     return;
-  paint_nav_cell(cell, contents_store_->get_path(it), contents_current_path_,
-                 contents_hover_path_);
+  paint_nav_cell(cell, contents_store_->get_path(it), contents_current_path_, contents_hover_path_);
 }
 
 bool MainWindow::on_contents_motion(GdkEventMotion* event)
@@ -997,16 +985,15 @@ void MainWindow::on_print()
           n = std::max(1, static_cast<int>(std::ceil(layout_h / job->page_h)));
         op->set_n_pages(n);
       });
-  op->signal_draw_page().connect(
-      [job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int page) {
-        auto cr = ctx->get_cairo_context();
-        cr->save();
-        cr->rectangle(0, 0, ctx->get_width(), ctx->get_height());
-        cr->clip();
-        cr->move_to(0, -page * job->page_h);
-        pango_cairo_show_layout(cr->cobj(), job->layout->gobj());
-        cr->restore();
-      });
+  op->signal_draw_page().connect([job](const Glib::RefPtr<Gtk::PrintContext>& ctx, int page) {
+    auto cr = ctx->get_cairo_context();
+    cr->save();
+    cr->rectangle(0, 0, ctx->get_width(), ctx->get_height());
+    cr->clip();
+    cr->move_to(0, -page * job->page_h);
+    pango_cairo_show_layout(cr->cobj(), job->layout->gobj());
+    cr->restore();
+  });
   try {
     const auto result = op->run(Gtk::PRINT_OPERATION_ACTION_PRINT_DIALOG, *this);
     if (result == Gtk::PRINT_OPERATION_RESULT_APPLY)
@@ -1078,8 +1065,7 @@ std::string MainWindow::book_key() const
 {
   if (!book_.is_open())
     return {};
-  const std::string id =
-      book_.identifier().empty() ? book_.source_path() : book_.identifier();
+  const std::string id = book_.identifier().empty() ? book_.source_path() : book_.identifier();
   return Settings::key_for(id);
 }
 
@@ -1140,8 +1126,8 @@ void MainWindow::rebuild_bookmarks()
 {
   for (auto* w : bookmark_menu_.get_children())
     bookmark_menu_.remove(*w);
-  auto* def = add_item(bookmark_menu_, "_Define…",
-                       sigc::mem_fun(*this, &MainWindow::on_define_bookmark));
+  auto* def =
+      add_item(bookmark_menu_, "_Define…", sigc::mem_fun(*this, &MainWindow::on_define_bookmark));
   def->set_sensitive(book_.is_open());
   if (book_.is_open()) {
     const auto& rec = settings_.book(book_key());
