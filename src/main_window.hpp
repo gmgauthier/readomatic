@@ -47,13 +47,11 @@ class MainWindow : public Gtk::Window {
   bool on_contents_motion(GdkEventMotion* event);
   bool on_contents_leave(GdkEventCrossing* event);
   bool on_contents_key(GdkEventKey* event);
-  void on_contents_cell_data(Gtk::CellRenderer* cell,
-                             const Gtk::TreeModel::const_iterator& it);
+  void on_contents_cell_data(Gtk::CellRenderer* cell, const Gtk::TreeModel::const_iterator& it);
   bool on_find_motion(GdkEventMotion* event);
   bool on_find_leave(GdkEventCrossing* event);
   bool on_find_key(GdkEventKey* event);
-  void on_find_cell_data(Gtk::CellRenderer* cell,
-                         const Gtk::TreeModel::const_iterator& it);
+  void on_find_cell_data(Gtk::CellRenderer* cell, const Gtk::TreeModel::const_iterator& it);
   void show_current(const std::string& fragment = {});
   void fill_contents();
   void fill_index();
