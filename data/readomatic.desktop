@@ -2,11 +2,11 @@
 Type=Application
 Name=Read-O-Matic
 Comment=An EPUB reader for The Lunduke Computer Operating System
-Exec=readomatic
+Exec=readomatic %F
 Icon=readomatic
 Terminal=false
 Hidden=false
 Categories=GTK;Office;Viewer;Literature;
-MimeType=application/epub+zip;
+MimeType=application/epub+zip;application/x-mobipocket-ebook;application/vnd.amazon.ebook;
 StartupWMClass=readomatic
 StartupNotify=true

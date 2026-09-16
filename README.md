@@ -22,6 +22,8 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 |---|---|
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Locked decisions, architecture, milestones M0–M6, branching, semver, lint |
 
+Thunar Open with: EPUB (payload) and MOBI (listed; not readable yet). `Exec=readomatic %F`. Single-instance via flock + Unix socket (no D-Bus).
+
 ## Build
 
 ```
