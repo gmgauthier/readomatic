@@ -5,6 +5,9 @@
 #include <glib.h>
 #include <glibmm/miscutils.h>
 
+#include <string>
+#include <vector>
+
 namespace {
 
 bool theme_has_gtk3(const char* name)
@@ -38,5 +41,19 @@ int main(int argc, char* argv[])
   g_set_prgname("readomatic");
   prefer_light_theme();
 
-  return readomatic::Application::create()->run(argc, argv);
+  std::vector<std::string> files;
+  int keep = 1;
+  for (int i = 1; i < argc; ++i) {
+    if (argv[i][0] == '-' && argv[i][1] != '\0') {
+      argv[keep++] = argv[i];
+    } else {
+      files.push_back(argv[i]);
+    }
+  }
+  argc = keep;
+  argv[argc] = nullptr;
+
+  auto app = readomatic::Application::create();
+  app->set_open_paths(std::move(files));
+  return app->run(argc, argv);
 }

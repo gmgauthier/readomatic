@@ -26,7 +26,7 @@ v1.0 packaging is this slice. Later: Library window, Contents tree lines.
 | Never | `.hlp`, `.chm` as a product goal. Those are the *look*, not the file type |
 | Topic renderer | **`Gtk::TextView` for v1.** Map a small XHTML subset into text tags + pixbufs. Prefer the poorer renderer if it keeps the Help-file feeling. WebKitGTK is a one-time escape hatch **only if M1 proves a real EPUB unreadable** — not a browser chrome |
 | EPUB parse | `libarchive` for the zip; `libxml2` for OPF / nav / NCX / XHTML. No Calibre, no Java |
-| Open | File → **Open…** replaces the current book (WinHelp: one help file). Close clears. No New vs Add |
+| Open | File → **Open…** replaces the current book (WinHelp: one help file). Close clears. No New vs Add. Thunar Open with: `Exec=readomatic %F`, leftover argv, flock + `$XDG_RUNTIME_DIR/readomatic.sock`. No D-Bus (`APPLICATION_NON_UNIQUE`). One path; extra files ignored. |
 | Jumps | Underlined navy (or theme-selected) links. Click pushes Back stack and opens the target href in the topic pane |
 | Back | History stack of (spine href, scroll). Not browser-style tabs |
 | `<<` `>>` | Walk the **spine** (browse sequence), not the Back stack |

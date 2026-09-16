@@ -14,6 +14,7 @@ namespace readomatic {
 class MainWindow : public Gtk::Window {
  public:
   MainWindow();
+  void open_path(const std::string& path);
 
  private:
   void build_menu();
@@ -23,7 +24,6 @@ class MainWindow : public Gtk::Window {
   void set_status(const Glib::ustring& text);
 
   void on_open();
-  void open_path(const std::string& path);
   void on_close_book();
   void on_quit();
   void on_about();
