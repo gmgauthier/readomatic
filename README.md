@@ -35,7 +35,7 @@ PR lint gate: `./scripts/lint.sh` (CI runs this; no `--fix`). Format `src/` loca
 
 ## Install
 
-Preferred: `./scripts/release.sh deb` then `sudo apt install ./dist/readomatic_0.1.1-1_amd64.deb`. Details in [INSTALL.md](INSTALL.md).
+Preferred: `./scripts/release.sh deb` then `sudo apt install ./dist/readomatic_0.1.2-1_amd64.deb`. Details in [INSTALL.md](INSTALL.md).
 
 ## License
 
