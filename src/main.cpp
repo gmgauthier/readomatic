@@ -15,14 +15,16 @@ bool theme_has_gtk3(const char* name)
          g_file_test(sys.c_str(), G_FILE_TEST_IS_DIR);
 }
 
-/* Light chrome for this process only. Does not change the desktop theme.
- * GTK_THEME in the environment still wins. */
+/* Process-only theme. GTK_THEME in the environment still wins.
+ * Else Clearlooks-Phenix, then Clearlooks, then Adwaita:light. */
 void prefer_light_theme()
 {
   if (g_getenv("GTK_THEME") != nullptr)
     return;
   if (theme_has_gtk3("Clearlooks-Phenix"))
     g_setenv("GTK_THEME", "Clearlooks-Phenix", FALSE);
+  else if (theme_has_gtk3("Clearlooks"))
+    g_setenv("GTK_THEME", "Clearlooks", FALSE);
   else
     g_setenv("GTK_THEME", "Adwaita:light", FALSE);
 }
