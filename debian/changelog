@@ -1,3 +1,10 @@
+readomatic (0.2.0-1) unstable; urgency=medium
+
+  * Thunar Open with for EPUB (Exec %F, argv, Unix socket). MOBI MIME
+    associated; payload still EPUB-only.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Wed, 16 Sep 2026 20:50:00 +0100
+
 readomatic (0.1.2-1) unstable; urgency=medium
 
   * Standardize GTK theming for LCOS: Clearlooks-Phenix, then Clearlooks, then Adwaita:light.
