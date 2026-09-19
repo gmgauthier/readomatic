@@ -226,7 +226,7 @@ void MainWindow::build_toolbar()
   toolbar_.pack_start(btn_prev_, Gtk::PACK_SHRINK);
   toolbar_.pack_start(btn_next_, Gtk::PACK_SHRINK);
   toolbar_.pack_start(btn_print_, Gtk::PACK_SHRINK);
-  btn_library_.set_tooltip_text("coming soon");
+  btn_library_.set_tooltip_text("Library");
   btn_library_.signal_clicked().connect(sigc::mem_fun(*this, &MainWindow::on_library));
   toolbar_.pack_end(btn_library_, Gtk::PACK_SHRINK);
   root_.pack_start(toolbar_, Gtk::PACK_SHRINK);
@@ -1214,8 +1214,15 @@ void MainWindow::on_define_bookmark()
 
 void MainWindow::on_library()
 {
-  btn_library_.trigger_tooltip_query();
-  set_status("Library — coming soon.");
+  if (!library_win_) {
+    library_win_ = std::make_unique<LibraryWindow>(*this, settings_);
+    library_win_->signal_open_book.connect([this](const std::string& path) {
+      open_path(path);
+      present();
+    });
+  }
+  library_win_->present();
+  library_win_->refresh_devices();
 }
 
 }  // namespace readomatic

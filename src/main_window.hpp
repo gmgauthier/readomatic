@@ -4,10 +4,13 @@
 
 #include "book.hpp"
 #include "history.hpp"
+#include "library_window.hpp"
 #include "settings.hpp"
 #include "topic_view.hpp"
 
 #include <gtkmm.h>
+
+#include <memory>
 
 namespace readomatic {
 
@@ -81,6 +84,7 @@ class MainWindow : public Gtk::Window {
   Gtk::Button btn_next_{">>"};
   Gtk::Button btn_print_{"Print"};
   Gtk::Button btn_library_{"Library"};
+  std::unique_ptr<LibraryWindow> library_win_;
   Gtk::Menu recent_menu_;
   Gtk::Menu bookmark_menu_;
   Gtk::Paned paned_{Gtk::ORIENTATION_HORIZONTAL};

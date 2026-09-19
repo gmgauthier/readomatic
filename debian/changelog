@@ -1,3 +1,11 @@
+readomatic (0.3.0-1) unstable; urgency=medium
+
+  * Library window: dual-pane copy to USB/MTP, last-page-read sidecar,
+    Open ticked book in the reader. Library folder and last device path
+    persist in the ini.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sat, 19 Sep 2026 09:30:44 +0100
+
 readomatic (0.2.0-1) unstable; urgency=medium
 
   * Thunar Open with for EPUB (Exec %F, argv, Unix socket). MOBI MIME

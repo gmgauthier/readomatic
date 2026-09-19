@@ -197,7 +197,7 @@ Done when: Find “whale” in a Gutenberg book lists hits and a click lands in 
 
 Bookmark → Define stores href + label for this book. Bookmark menu lists them. On open, restore last href (and window) from ini if that file still exists. File → Open Recent.
 
-Toolbar **Library** (far right): stub. Tooltip and status “coming soon”. The real Library is a later window (see Later).
+Toolbar **Library** (far right): opens the Library window (0.3.0).
 
 Done when: quit mid-chapter, reopen the same EPUB, land on that topic.
 
@@ -215,7 +215,7 @@ Done when: `dpkg-buildpackage` produces an installable `.deb` on Trixie.
 
 ### Later (not v1)
 
-- **Library window** — separate UI, not a notebook tab. Reads `[library] dir` from the ini (a default books folder), shows cover thumbnails. Select a book → open it in the reader. Organize: groups, tags, add, delete. M4 only ships the toolbar button.
+- Library organize: groups, tags, add, delete (copy/open/last-page-read shipped in 0.3.0)
 - Contents tree lines and remember expand/collapse
 - MOBI/AZW, annotation highlighter, dictionary lookup, TTS, two books at once
 
