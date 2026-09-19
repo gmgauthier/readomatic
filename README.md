@@ -14,6 +14,10 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ![About](brand/screenshot-about.png)
 
+![Library transfer](brand/screenshot-library-transfer.png)
+
+![Library open](brand/screenshot-library-open.png)
+
 ## Status
 
 **M6 in tree**, plus **Library** (0.3.0): dual-pane copy to an attached reader, last-page-read sidecar, Open in the reader. `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
