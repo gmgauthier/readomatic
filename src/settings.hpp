@@ -35,6 +35,8 @@ struct Settings {
   int window_h = 560;
   int paned = 220;
   std::string library_dir;
+  std::string device_uri;
+  std::string device_dir;
   std::string font_family = "Serif";
   int font_size = 12;
   int font_weight = 400;
