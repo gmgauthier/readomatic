@@ -82,6 +82,8 @@ void Settings::load()
   window_h = get_int(kf, "window", "height", window_h);
   paned = get_int(kf, "window", "paned", paned);
   library_dir = get_str(kf, "library", "dir");
+  device_uri = get_str(kf, "library", "device_uri");
+  device_dir = get_str(kf, "library", "device_dir");
   {
     const std::string fam = get_str(kf, "topic", "font_family");
     if (!fam.empty())
@@ -155,6 +157,8 @@ void Settings::save() const
   kf.set_integer("window", "height", window_h);
   kf.set_integer("window", "paned", paned);
   kf.set_string("library", "dir", library_dir);
+  kf.set_string("library", "device_uri", device_uri);
+  kf.set_string("library", "device_dir", device_dir);
   kf.set_string("topic", "font_family", font_family);
   kf.set_integer("topic", "font_size", font_size);
   kf.set_integer("topic", "font_weight", font_weight);

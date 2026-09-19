@@ -1,7 +1,7 @@
 project(
   'readomatic',
   'cpp',
-  version: '0.2.0',
+  version: '0.3.0',
   license: 'Unlicense',
   meson_version: '>=0.56',
   default_options: [
@@ -40,6 +40,9 @@ executable(
   'src/topic_view.cpp',
   'src/settings.cpp',
   'src/font_dialog.cpp',
+  'src/library_devices.cpp',
+  'src/library_window.cpp',
+  'src/lastread.cpp',
   include_directories: inc,
   dependencies: [gtkmm, libarchive, libxml, fontconfig],
   install: true,
