@@ -16,7 +16,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**M6 in tree.** `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
+**M6 in tree**, plus **Library** (0.3.0): dual-pane copy to an attached reader, last-page-read sidecar, Open in the reader. `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
 
 | Doc | What |
 |---|---|
@@ -37,7 +37,7 @@ PR lint gate: `./scripts/lint.sh` (CI runs this; no `--fix`). Format `src/` loca
 
 ## Install
 
-Preferred: `./scripts/release.sh deb` then `sudo apt install ./dist/readomatic_0.2.0-1_amd64.deb`. Details in [INSTALL.md](INSTALL.md).
+Preferred: `./scripts/release.sh deb` then `sudo apt install ./dist/readomatic_0.3.0-1_amd64.deb`. Details in [INSTALL.md](INSTALL.md).
 
 ## License
 
