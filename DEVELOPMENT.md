@@ -9,7 +9,7 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-09-27)
 
-**v1.1.0.** Topic highlighter (yellow / light green / light blue / pink). Tags through `v1.1.0`. Samples stay git-only. Later: Contents tree lines.
+**v1.2.0.** Bookmarks dialog (Jump / Delete) and restore scroll. Highlighter from 1.1.0. Tags through `v1.2.0`. Samples stay git-only. Later: Contents tree lines.
 
 ## 1. Locked decisions
 

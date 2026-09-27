@@ -1,3 +1,9 @@
+readomatic (1.2.0-1) unstable; urgency=medium
+
+  * Bookmarks dialog: Jump, Delete, restore scroll.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sun, 27 Sep 2026 12:10:00 +0100
+
 readomatic (1.1.0-1) unstable; urgency=medium
 
   * Topic highlighter: yellow, light green, light blue, pink.
