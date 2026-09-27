@@ -107,6 +107,8 @@ MainWindow::MainWindow()
   get_style_context()->add_class("readomatic-window");
 
   load_css();
+  accel_group_ = Gtk::AccelGroup::create();
+  add_accel_group(accel_group_);
   build_menu();
   build_toolbar();
   build_body();
@@ -168,8 +170,10 @@ void MainWindow::build_menu()
   add_menu("_File", *file);
 
   auto* edit = Gtk::manage(new Gtk::Menu());
-  add_item(*edit, "_Copy",
-           sigc::bind(sigc::mem_fun(*this, &MainWindow::on_not_yet), Glib::ustring("Copy")));
+  auto* copy = Gtk::manage(new Gtk::MenuItem("_Copy", true));
+  copy->signal_activate().connect(sigc::mem_fun(*this, &MainWindow::on_copy));
+  copy->add_accelerator("activate", accel_group_, GDK_KEY_c, Gdk::CONTROL_MASK, Gtk::ACCEL_VISIBLE);
+  edit->append(*copy);
   add_menu("_Edit", *edit);
 
   add_menu("_Bookmark", bookmark_menu_);
@@ -945,6 +949,14 @@ void MainWindow::on_nav_page(int page)
       Glib::PRIORITY_LOW);
 }
 
+void MainWindow::on_copy()
+{
+  if (topic_view_.copy_selection())
+    set_status("Copied.");
+  else
+    set_status("Select text in the topic to copy.");
+}
+
 void MainWindow::on_not_yet(const Glib::ustring& feature)
 {
   set_status(feature + " arrives after this stub.");
@@ -1043,6 +1055,12 @@ bool MainWindow::on_key_press_event(GdkEventKey* event)
   }
   if (ctrl && !alt && (key == GDK_KEY_f || key == GDK_KEY_F)) {
     on_nav_page(2);
+    return true;
+  }
+  if (ctrl && !alt && (key == GDK_KEY_c || key == GDK_KEY_C)) {
+    if (in_editable_focus())
+      return Gtk::Window::on_key_press_event(event);
+    on_copy();
     return true;
   }
   if (key == GDK_KEY_Escape) {

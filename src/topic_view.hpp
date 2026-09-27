@@ -20,6 +20,7 @@ class TopicView : public Gtk::TextView {
   bool scroll_to_id(const std::string& id);
   bool select_match(const Glib::ustring& query, int occurrence);
   void apply_appearance(const std::string& family, int size_pt, int weight, int palette);
+  bool copy_selection() const;
 
   sigc::signal<void, Glib::ustring>& signal_jump()
   {

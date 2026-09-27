@@ -200,6 +200,18 @@ void TopicView::clear_topic()
   link_hrefs_.clear();
 }
 
+bool TopicView::copy_selection() const
+{
+  Gtk::TextIter a, b;
+  if (!buf_->get_selection_bounds(a, b))
+    return false;
+  const Glib::ustring text = buf_->get_text(a, b);
+  if (text.empty())
+    return false;
+  Gtk::Clipboard::get()->set_text(text);
+  return true;
+}
+
 void TopicView::insert_text(const std::string& text, const std::vector<Glib::ustring>& tag_names)
 {
   if (text.empty())

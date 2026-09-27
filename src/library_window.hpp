@@ -32,6 +32,10 @@ class LibraryWindow : public Gtk::Window {
   void on_device_changed();
   void persist_device_dir();
   void on_open();
+  void on_add_books();
+  void on_delete_books();
+  void on_group();
+  void on_tag();
   void on_transfer();
   void on_close();
   void run_copy();

@@ -66,6 +66,7 @@ class MainWindow : public Gtk::Window {
   void relayout_nav(Gtk::TreeView& view, Gtk::ScrolledWindow& scroll);
   double topic_scroll() const;
   void set_topic_scroll(double value);
+  void on_copy();
   void on_not_yet(const Glib::ustring& feature);
   void apply_topic_chrome();
   bool in_editable_focus() const;
@@ -74,6 +75,7 @@ class MainWindow : public Gtk::Window {
   bool on_key_press_event(GdkEventKey* event) override;
 
   Gtk::Box root_{Gtk::ORIENTATION_VERTICAL, 0};
+  Glib::RefPtr<Gtk::AccelGroup> accel_group_;
   Gtk::MenuBar menubar_;
   Gtk::Box toolbar_{Gtk::ORIENTATION_HORIZONTAL, 4};
   Gtk::Button btn_contents_{"Contents"};

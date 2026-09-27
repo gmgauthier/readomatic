@@ -6,8 +6,7 @@ WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3. Binary `readomatic`. Suite ca
 
 ## High Priority
 
-- **Edit → Copy.** Menu item is wired to `on_not_yet`. Copy the topic selection to the clipboard.
-- Library organize: groups, tags, add, delete (copy/open/last-page-read shipped in 0.3.0).
+None. Edit → Copy and library organize (groups, tags, add, delete) are in this branch.
 
 ## Low Priority
 

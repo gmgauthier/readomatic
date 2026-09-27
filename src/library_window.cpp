@@ -2,7 +2,9 @@
 
 #include "library_window.hpp"
 #include "lastread.hpp"
+#include "library_catalog.hpp"
 
+#include <glib.h>
 #include <glibmm/fileutils.h>
 #include <glibmm/miscutils.h>
 
@@ -26,21 +28,6 @@ Glib::ustring format_size(guint64 n)
   else
     std::snprintf(buf, sizeof(buf), "%.1f GB", static_cast<double>(n) / (1024.0 * 1024.0 * 1024.0));
   return buf;
-}
-
-bool is_ebook_name(const std::string& name)
-{
-  auto lower = [](std::string s) {
-    for (char& c : s)
-      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    return s;
-  };
-  const std::string n = lower(name);
-  return n.size() > 4 &&
-         (n.compare(n.size() - 5, 5, ".epub") == 0 || n.compare(n.size() - 4, 4, ".pdf") == 0 ||
-          n.compare(n.size() - 5, 5, ".mobi") == 0 || n.compare(n.size() - 4, 4, ".fb2") == 0 ||
-          n.compare(n.size() - 4, 4, ".azw") == 0 ||
-          (n.size() > 5 && n.compare(n.size() - 5, 5, ".azw3") == 0));
 }
 
 bool skip_name(const std::string& name)
@@ -70,8 +57,11 @@ class LibraryPane : public Gtk::Box {
       add(is_parent);
       add(name);
       add(size_text);
+      add(tags_text);
       add(uri);
+      add(rel);
       add(weight);
+      add(is_group);
     }
     Gtk::TreeModelColumn<bool> tick;
     Gtk::TreeModelColumn<bool> tickable;
@@ -79,8 +69,11 @@ class LibraryPane : public Gtk::Box {
     Gtk::TreeModelColumn<bool> is_parent;
     Gtk::TreeModelColumn<Glib::ustring> name;
     Gtk::TreeModelColumn<Glib::ustring> size_text;
+    Gtk::TreeModelColumn<Glib::ustring> tags_text;
     Gtk::TreeModelColumn<Glib::ustring> uri;
+    Gtk::TreeModelColumn<Glib::ustring> rel;
     Gtk::TreeModelColumn<int> weight;
+    Gtk::TreeModelColumn<bool> is_group;
   };
 
   LibraryPane(bool device_side, Settings& settings)
@@ -88,7 +81,7 @@ class LibraryPane : public Gtk::Box {
         device_side_(device_side),
         settings_(settings)
   {
-    store_ = Gtk::ListStore::create(cols_);
+    store_ = Gtk::TreeStore::create(cols_);
     head_.get_style_context()->add_class("readomatic-lib-head");
     path_.set_ellipsize(Pango::ELLIPSIZE_START);
     path_.set_halign(Gtk::ALIGN_START);
@@ -130,6 +123,7 @@ class LibraryPane : public Gtk::Box {
     name_col->add_attribute(name->property_weight(), cols_.weight);
     name_col->set_expand(true);
     view_.append_column(*name_col);
+    view_.set_expander_column(*name_col);
 
     auto* sz = Gtk::manage(new Gtk::CellRendererText());
     sz->property_xalign() = 1.0;
@@ -140,6 +134,18 @@ class LibraryPane : public Gtk::Box {
     sz_col->set_fixed_width(72);
     view_.append_column(*sz_col);
 
+    if (!device_side_) {
+      auto* tags = Gtk::manage(new Gtk::CellRendererText());
+      tags->property_ellipsize() = Pango::ELLIPSIZE_END;
+      auto* tags_col = Gtk::manage(new Gtk::TreeViewColumn("Tags"));
+      tags_col->pack_start(*tags, true);
+      tags_col->add_attribute(tags->property_text(), cols_.tags_text);
+      tags_col->set_sizing(Gtk::TREE_VIEW_COLUMN_FIXED);
+      tags_col->set_fixed_width(120);
+      view_.append_column(*tags_col);
+      view_.set_headers_visible(true);
+    }
+
     view_.signal_row_activated().connect(sigc::mem_fun(*this, &LibraryPane::on_row_activated));
     scroll_.add(view_);
     scroll_.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
@@ -147,9 +153,41 @@ class LibraryPane : public Gtk::Box {
     scroll_.set_hexpand(true);
     scroll_.set_vexpand(true);
 
+    if (!device_side_) {
+      add_btn_.set_label("Add…");
+      del_btn_.set_label("Delete");
+      group_btn_.set_label("Group…");
+      tag_btn_.set_label("Tag…");
+      filter_.set_tooltip_text("Show all, a group, or a tag");
+      filter_.set_size_request(140, -1);
+      org_.set_spacing(4);
+      org_.set_border_width(4);
+      org_.pack_start(add_btn_, Gtk::PACK_SHRINK);
+      org_.pack_start(del_btn_, Gtk::PACK_SHRINK);
+      org_.pack_start(group_btn_, Gtk::PACK_SHRINK);
+      org_.pack_start(tag_btn_, Gtk::PACK_SHRINK);
+      filter_row_.set_border_width(4);
+      filter_row_.set_spacing(4);
+      filter_row_.pack_start(*Gtk::manage(new Gtk::Label("Show", Gtk::ALIGN_START)),
+                             Gtk::PACK_SHRINK);
+      filter_row_.pack_start(filter_, Gtk::PACK_EXPAND_WIDGET);
+    }
+
     pack_start(head_, Gtk::PACK_SHRINK);
     pack_start(path_, Gtk::PACK_SHRINK);
     pack_start(scroll_, Gtk::PACK_EXPAND_WIDGET);
+    if (!device_side_) {
+      pack_start(org_, Gtk::PACK_SHRINK);
+      pack_start(filter_row_, Gtk::PACK_SHRINK);
+    }
+    if (!device_side_) {
+      filter_.signal_changed().connect([this]() {
+        if (filling_filter_)
+          return;
+        filter_id_ = filter_.get_active_id().raw();
+        refresh_catalog();
+      });
+    }
   }
 
   Gtk::ComboBoxText& combo()
@@ -159,6 +197,30 @@ class LibraryPane : public Gtk::Box {
   Gtk::Button& set_button()
   {
     return set_btn_;
+  }
+  Gtk::Button& add_button()
+  {
+    return add_btn_;
+  }
+  Gtk::Button& delete_button()
+  {
+    return del_btn_;
+  }
+  Gtk::Button& group_button()
+  {
+    return group_btn_;
+  }
+  Gtk::Button& tag_button()
+  {
+    return tag_btn_;
+  }
+  Gtk::ComboBoxText& filter()
+  {
+    return filter_;
+  }
+  bool filling_filter() const
+  {
+    return filling_filter_;
   }
 
   void set_ceiling(const Glib::RefPtr<Gio::File>& ceiling)
@@ -199,6 +261,10 @@ class LibraryPane : public Gtk::Box {
 
   void refresh()
   {
+    if (!device_side_) {
+      refresh_catalog();
+      return;
+    }
     store_->clear();
     if (!current_) {
       path_.set_text("");
@@ -217,6 +283,9 @@ class LibraryPane : public Gtk::Box {
         row[cols_.name] = "[..]";
         row[cols_.size_text] = "";
         row[cols_.uri] = parent->get_uri();
+        row[cols_.rel] = "";
+        row[cols_.tags_text] = "";
+        row[cols_.is_group] = false;
         row[cols_.weight] = Pango::WEIGHT_BOLD;
       }
     }
@@ -268,27 +337,200 @@ class LibraryPane : public Gtk::Box {
       row[cols_.name] = it.name;
       row[cols_.size_text] = it.size_text;
       row[cols_.uri] = it.uri;
+      row[cols_.rel] = "";
+      row[cols_.tags_text] = "";
+      row[cols_.is_group] = false;
       row[cols_.weight] = it.is_dir ? Pango::WEIGHT_BOLD : Pango::WEIGHT_NORMAL;
     }
+  }
+
+  void refresh_catalog()
+  {
+    store_->clear();
+    filling_filter_ = true;
+    const std::string keep_filter = filter_id_;
+    filter_.remove_all();
+    filter_.append("all", "All");
+    filter_.append("none", "(Uncategorized)");
+    if (!current_) {
+      path_.set_text("");
+      filling_filter_ = false;
+      return;
+    }
+    const std::string root = current_->get_path();
+    path_.set_text(current_->get_parse_name());
+    auto cat = LibraryCatalog::load(root);
+    const auto books = scan_library(root, cat);
+    std::vector<std::string> groups = cat.groups;
+    std::vector<std::string> all_tags;
+    for (const auto& b : books) {
+      if (!b.group.empty() && std::find(groups.begin(), groups.end(), b.group) == groups.end())
+        groups.push_back(b.group);
+      for (const auto& t : b.tags)
+        all_tags.push_back(t);
+    }
+    std::sort(groups.begin(), groups.end());
+    groups.erase(std::unique(groups.begin(), groups.end()), groups.end());
+    std::sort(all_tags.begin(), all_tags.end());
+    all_tags.erase(std::unique(all_tags.begin(), all_tags.end()), all_tags.end());
+    for (const auto& g : groups)
+      filter_.append("g:" + g, g);
+    for (const auto& t : all_tags)
+      filter_.append("t:" + t, "Tag: " + t);
+    if (keep_filter.empty() || filter_.get_active_id().raw() == keep_filter || keep_filter == "all")
+      filter_.set_active_id(keep_filter.empty() ? "all" : keep_filter);
+    else if (!keep_filter.empty())
+      filter_.set_active_id(keep_filter);
+    if (filter_.get_active_id().empty())
+      filter_.set_active_id("all");
+    filter_id_ = filter_.get_active_id().raw();
+    filling_filter_ = false;
+
+    auto show_book = [&](const CatalogBook& b) {
+      if (filter_id_ == "all" || filter_id_.empty())
+        return true;
+      if (filter_id_ == "none")
+        return b.group.empty();
+      if (filter_id_.compare(0, 2, "g:") == 0)
+        return b.group == filter_id_.substr(2);
+      if (filter_id_.compare(0, 2, "t:") == 0) {
+        const std::string tag = filter_id_.substr(2);
+        return std::find(b.tags.begin(), b.tags.end(), tag) != b.tags.end();
+      }
+      return true;
+    };
+
+    auto append_book = [&](const Gtk::TreeNodeChildren& parent, const CatalogBook& b) {
+      auto row = *store_->append(parent);
+      row[cols_.tick] = false;
+      row[cols_.tickable] = true;
+      row[cols_.is_dir] = false;
+      row[cols_.is_parent] = false;
+      row[cols_.is_group] = false;
+      row[cols_.name] = b.name;
+      row[cols_.size_text] = format_size(b.size);
+      row[cols_.tags_text] = join_tags(b.tags);
+      row[cols_.uri] = Gio::File::create_for_path(b.abs)->get_uri();
+      row[cols_.rel] = b.rel;
+      row[cols_.weight] = Pango::WEIGHT_NORMAL;
+    };
+
+    const bool group_filter = filter_id_.compare(0, 2, "g:") == 0;
+    const bool none_filter = filter_id_ == "none";
+    if (!none_filter && !group_filter) {
+      for (const auto& g : groups) {
+        std::vector<const CatalogBook*> kids;
+        for (const auto& b : books) {
+          if (b.group == g && show_book(b))
+            kids.push_back(&b);
+        }
+        if (kids.empty() && filter_id_ != "all")
+          continue;
+        auto grow = *store_->append();
+        grow[cols_.tick] = false;
+        grow[cols_.tickable] = true;
+        grow[cols_.is_dir] = true;
+        grow[cols_.is_parent] = false;
+        grow[cols_.is_group] = true;
+        grow[cols_.name] = g;
+        grow[cols_.size_text] = "";
+        grow[cols_.tags_text] = "";
+        grow[cols_.uri] = Gio::File::create_for_path(Glib::build_filename(root, g))->get_uri();
+        grow[cols_.rel] = g;
+        grow[cols_.weight] = Pango::WEIGHT_BOLD;
+        for (const auto* b : kids)
+          append_book(grow.children(), *b);
+      }
+    } else if (group_filter) {
+      const std::string g = filter_id_.substr(2);
+      auto grow = *store_->append();
+      grow[cols_.tick] = false;
+      grow[cols_.tickable] = true;
+      grow[cols_.is_dir] = true;
+      grow[cols_.is_parent] = false;
+      grow[cols_.is_group] = true;
+      grow[cols_.name] = g;
+      grow[cols_.size_text] = "";
+      grow[cols_.tags_text] = "";
+      grow[cols_.uri] = Gio::File::create_for_path(Glib::build_filename(root, g))->get_uri();
+      grow[cols_.rel] = g;
+      grow[cols_.weight] = Pango::WEIGHT_BOLD;
+      for (const auto& b : books) {
+        if (b.group == g)
+          append_book(grow.children(), b);
+      }
+    }
+    for (const auto& b : books) {
+      if (!b.group.empty())
+        continue;
+      if (!show_book(b))
+        continue;
+      append_book(store_->children(), b);
+    }
+    view_.expand_all();
   }
 
   std::vector<Glib::RefPtr<Gio::File>> ticked() const
   {
     std::vector<Glib::RefPtr<Gio::File>> out;
-    for (const auto& row : store_->children()) {
-      if (!row[cols_.tick] || row[cols_.is_parent])
-        continue;
-      const Glib::ustring uri = row[cols_.uri];
-      if (!uri.empty())
-        out.push_back(Gio::File::create_for_uri(uri.raw()));
-    }
+    std::function<void(const Gtk::TreeNodeChildren&)> walk =
+        [&](const Gtk::TreeNodeChildren& nodes) {
+          for (const auto& row : nodes) {
+            if (row[cols_.tick] && !row[cols_.is_parent] && !row[cols_.is_group]) {
+              const Glib::ustring uri = row[cols_.uri];
+              if (!uri.empty())
+                out.push_back(Gio::File::create_for_uri(uri.raw()));
+            }
+            walk(row.children());
+          }
+        };
+    walk(store_->children());
     return out;
+  }
+
+  std::vector<std::string> ticked_rels() const
+  {
+    std::vector<std::string> out;
+    std::function<void(const Gtk::TreeNodeChildren&)> walk =
+        [&](const Gtk::TreeNodeChildren& nodes) {
+          for (const auto& row : nodes) {
+            if (row[cols_.tick] && !row[cols_.is_parent] && !row[cols_.is_group]) {
+              const std::string rel = Glib::ustring(row[cols_.rel]).raw();
+              if (!rel.empty())
+                out.push_back(rel);
+            }
+            walk(row.children());
+          }
+        };
+    walk(store_->children());
+    return out;
+  }
+
+  std::string selected_group()
+  {
+    auto sel = view_.get_selection()->get_selected();
+    if (!sel)
+      return {};
+    auto row = *sel;
+    if (row[cols_.is_group])
+      return Glib::ustring(row[cols_.rel]).raw();
+    const std::string rel = Glib::ustring(row[cols_.rel]).raw();
+    const auto slash = rel.find('/');
+    if (slash != std::string::npos)
+      return rel.substr(0, slash);
+    return {};
   }
 
   void clear_ticks()
   {
-    for (auto& row : store_->children())
-      row[cols_.tick] = false;
+    std::function<void(const Gtk::TreeNodeChildren&)> walk =
+        [&](const Gtk::TreeNodeChildren& nodes) {
+          for (auto& row : nodes) {
+            row[cols_.tick] = false;
+            walk(row.children());
+          }
+        };
+    walk(store_->children());
   }
 
   void set_list_sensitive(bool on)
@@ -296,6 +538,11 @@ class LibraryPane : public Gtk::Box {
     view_.set_sensitive(on);
     combo_.set_sensitive(on);
     set_btn_.set_sensitive(on);
+    add_btn_.set_sensitive(on);
+    del_btn_.set_sensitive(on);
+    group_btn_.set_sensitive(on);
+    tag_btn_.set_sensitive(on);
+    filter_.set_sensitive(on);
   }
 
   sigc::signal<void, Glib::ustring> signal_status;
@@ -310,7 +557,12 @@ class LibraryPane : public Gtk::Box {
     auto row = *it;
     if (!row[cols_.tickable])
       return;
-    row[cols_.tick] = !row[cols_.tick];
+    const bool on = !row[cols_.tick];
+    row[cols_.tick] = on;
+    if (row[cols_.is_group]) {
+      for (auto& child : row.children())
+        child[cols_.tick] = on;
+    }
   }
 
   void on_row_activated(const Gtk::TreeModel::Path& path, Gtk::TreeViewColumn*)
@@ -322,6 +574,13 @@ class LibraryPane : public Gtk::Box {
     const Glib::ustring uri = row[cols_.uri];
     if (uri.empty())
       return;
+    if (row[cols_.is_group]) {
+      if (view_.row_expanded(path))
+        view_.collapse_row(path);
+      else
+        view_.expand_row(path, false);
+      return;
+    }
     if (row[cols_.is_dir] || row[cols_.is_parent]) {
       navigate(Gio::File::create_for_uri(uri.raw()));
       return;
@@ -333,7 +592,7 @@ class LibraryPane : public Gtk::Box {
   bool device_side_ = false;
   Settings& settings_;
   Columns cols_;
-  Glib::RefPtr<Gtk::ListStore> store_;
+  Glib::RefPtr<Gtk::TreeStore> store_;
   Glib::RefPtr<Gio::File> ceiling_;
   Glib::RefPtr<Gio::File> current_;
   std::string device_root_;
@@ -344,6 +603,15 @@ class LibraryPane : public Gtk::Box {
   Gtk::Label path_;
   Gtk::ScrolledWindow scroll_;
   Gtk::TreeView view_;
+  Gtk::Box org_{Gtk::ORIENTATION_HORIZONTAL, 4};
+  Gtk::Box filter_row_{Gtk::ORIENTATION_HORIZONTAL, 4};
+  Gtk::Button add_btn_;
+  Gtk::Button del_btn_;
+  Gtk::Button group_btn_;
+  Gtk::Button tag_btn_;
+  Gtk::ComboBoxText filter_;
+  std::string filter_id_ = "all";
+  bool filling_filter_ = false;
 };
 
 LibraryWindow::LibraryWindow(Gtk::Window& parent, Settings& settings)
@@ -361,6 +629,11 @@ LibraryWindow::LibraryWindow(Gtk::Window& parent, Settings& settings)
   right_->signal_status.connect(sigc::mem_fun(*this, &LibraryWindow::set_status));
   left_->set_button().signal_clicked().connect(
       sigc::mem_fun(*this, &LibraryWindow::on_set_library));
+  left_->add_button().signal_clicked().connect(sigc::mem_fun(*this, &LibraryWindow::on_add_books));
+  left_->delete_button().signal_clicked().connect(
+      sigc::mem_fun(*this, &LibraryWindow::on_delete_books));
+  left_->group_button().signal_clicked().connect(sigc::mem_fun(*this, &LibraryWindow::on_group));
+  left_->tag_button().signal_clicked().connect(sigc::mem_fun(*this, &LibraryWindow::on_tag));
   right_->combo().signal_changed().connect(sigc::mem_fun(*this, &LibraryWindow::on_device_changed));
   right_->signal_navigated.connect(sigc::mem_fun(*this, &LibraryWindow::persist_device_dir));
 
@@ -417,6 +690,205 @@ LibraryWindow::~LibraryWindow()
 void LibraryWindow::set_status(const Glib::ustring& text)
 {
   status_.set_text(text);
+}
+
+void LibraryWindow::on_add_books()
+{
+  if (!left_->current()) {
+    set_status("Set a library folder first.");
+    return;
+  }
+  Gtk::FileChooserDialog dlg(*this, "Add to library", Gtk::FILE_CHOOSER_ACTION_OPEN);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_Add", Gtk::RESPONSE_ACCEPT);
+  dlg.set_select_multiple(true);
+  auto filter = Gtk::FileFilter::create();
+  filter->set_name("Books");
+  filter->add_pattern("*.epub");
+  filter->add_pattern("*.pdf");
+  filter->add_pattern("*.mobi");
+  filter->add_pattern("*.azw");
+  filter->add_pattern("*.azw3");
+  filter->add_pattern("*.fb2");
+  dlg.add_filter(filter);
+  if (dlg.run() != Gtk::RESPONSE_ACCEPT)
+    return;
+  const std::string group = sanitize_group(left_->selected_group());
+  const std::string dest_dir = group.empty()
+                                   ? left_->current()->get_path()
+                                   : Glib::build_filename(left_->current()->get_path(), group);
+  g_mkdir_with_parents(dest_dir.c_str(), 0700);
+  int n = 0;
+  for (const auto& path : dlg.get_filenames()) {
+    if (!is_ebook_name(Glib::path_get_basename(path)))
+      continue;
+    auto src = Gio::File::create_for_path(path);
+    auto dest =
+        Gio::File::create_for_path(Glib::build_filename(dest_dir, Glib::path_get_basename(path)));
+    try {
+      if (dest->query_exists()) {
+        set_status("Already in library: " + Glib::path_get_basename(path));
+        continue;
+      }
+      src->copy(dest, Gio::FILE_COPY_NONE);
+      ++n;
+    } catch (const Glib::Error& e) {
+      set_status(e.what());
+    }
+  }
+  left_->refresh();
+  if (n > 0)
+    set_status(Glib::ustring::compose("Added %1 book(s).", n));
+}
+
+void LibraryWindow::on_delete_books()
+{
+  auto files = left_->ticked();
+  if (files.empty()) {
+    set_status("Tick a book to delete.");
+    return;
+  }
+  Gtk::MessageDialog ask(*this, "Delete the ticked books from the library?", false,
+                         Gtk::MESSAGE_QUESTION, Gtk::BUTTONS_OK_CANCEL);
+  ask.set_secondary_text("Removes the files from the library folder.");
+  if (ask.run() != Gtk::RESPONSE_OK)
+    return;
+  auto cat = LibraryCatalog::load(left_->current() ? left_->current()->get_path() : "");
+  int n = 0;
+  for (const auto& f : files) {
+    const std::string path = f->get_path();
+    try {
+      const std::string lr = lastread_path(path);
+      if (Glib::file_test(lr, Glib::FILE_TEST_EXISTS))
+        Gio::File::create_for_path(lr)->remove();
+      f->remove();
+      ++n;
+    } catch (const Glib::Error& e) {
+      set_status(e.what());
+    }
+  }
+  if (left_->current())
+    cat.save(left_->current()->get_path());
+  left_->refresh();
+  set_status(Glib::ustring::compose("Deleted %1 book(s).", n));
+}
+
+void LibraryWindow::on_group()
+{
+  if (!left_->current()) {
+    set_status("Set a library folder first.");
+    return;
+  }
+  Gtk::Dialog dlg("Group", *this, true);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_OK", Gtk::RESPONSE_ACCEPT);
+  auto* box = dlg.get_content_area();
+  box->set_border_width(10);
+  box->set_spacing(8);
+  auto* name = Gtk::manage(new Gtk::Entry());
+  name->set_placeholder_text("New or existing group name");
+  name->set_activates_default(true);
+  auto* none = Gtk::manage(new Gtk::CheckButton("Uncategorized (library root)"));
+  box->pack_start(*Gtk::manage(new Gtk::Label("Move ticked books into:", Gtk::ALIGN_START)),
+                  Gtk::PACK_SHRINK);
+  box->pack_start(*name, Gtk::PACK_SHRINK);
+  box->pack_start(*none, Gtk::PACK_SHRINK);
+  dlg.set_default_response(Gtk::RESPONSE_ACCEPT);
+  dlg.show_all();
+  if (dlg.run() != Gtk::RESPONSE_ACCEPT)
+    return;
+  std::string group;
+  if (!none->get_active())
+    group = sanitize_group(std::string(name->get_text()));
+  const std::string root = left_->current()->get_path();
+  auto cat = LibraryCatalog::load(root);
+  if (!group.empty()) {
+    g_mkdir_with_parents(Glib::build_filename(root, group).c_str(), 0700);
+    if (std::find(cat.groups.begin(), cat.groups.end(), group) == cat.groups.end()) {
+      cat.groups.push_back(group);
+      std::sort(cat.groups.begin(), cat.groups.end());
+    }
+  }
+  auto files = left_->ticked();
+  auto rels = left_->ticked_rels();
+  int n = 0;
+  for (size_t i = 0; i < files.size(); ++i) {
+    const std::string src_path = files[i]->get_path();
+    const std::string base = Glib::path_get_basename(src_path);
+    const std::string dest_dir = group.empty() ? root : Glib::build_filename(root, group);
+    auto dest = Gio::File::create_for_path(Glib::build_filename(dest_dir, base));
+    if (files[i]->equal(dest))
+      continue;
+    try {
+      if (dest->query_exists()) {
+        set_status("Name already used: " + base);
+        continue;
+      }
+      files[i]->move(dest, Gio::FILE_COPY_NONE);
+      const std::string old_rel = i < rels.size() ? rels[i] : base;
+      const std::string new_rel = group.empty() ? base : (group + "/" + base);
+      auto tags = cat.tags_for(old_rel);
+      cat.tags_by_rel.erase(old_rel);
+      if (!tags.empty())
+        cat.set_tags(new_rel, tags);
+      const std::string lr = lastread_path(src_path);
+      if (Glib::file_test(lr, Glib::FILE_TEST_EXISTS)) {
+        auto lr_dest = Gio::File::create_for_path(lastread_path(dest->get_path()));
+        try {
+          Gio::File::create_for_path(lr)->move(lr_dest, Gio::FILE_COPY_NONE);
+        } catch (const Glib::Error&) {
+        }
+      }
+      ++n;
+    } catch (const Glib::Error& e) {
+      set_status(e.what());
+    }
+  }
+  cat.save(root);
+  left_->refresh();
+  if (n > 0)
+    set_status(Glib::ustring::compose("Moved %1 book(s).", n));
+  else if (group.empty() && files.empty())
+    set_status("Group saved.");
+  else if (!group.empty() && files.empty())
+    set_status("Group “" + group + "” is ready.");
+}
+
+void LibraryWindow::on_tag()
+{
+  auto rels = left_->ticked_rels();
+  if (rels.empty()) {
+    set_status("Tick a book to tag.");
+    return;
+  }
+  if (!left_->current())
+    return;
+  const std::string root = left_->current()->get_path();
+  auto cat = LibraryCatalog::load(root);
+  Gtk::Dialog dlg("Tags", *this, true);
+  dlg.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+  dlg.add_button("_OK", Gtk::RESPONSE_ACCEPT);
+  auto* box = dlg.get_content_area();
+  box->set_border_width(10);
+  box->set_spacing(8);
+  auto* entry = Gtk::manage(new Gtk::Entry());
+  entry->set_placeholder_text("semicolon-separated tags");
+  entry->set_activates_default(true);
+  if (rels.size() == 1)
+    entry->set_text(join_tags(cat.tags_for(rels.front())));
+  box->pack_start(*Gtk::manage(new Gtk::Label("Tags for ticked books:", Gtk::ALIGN_START)),
+                  Gtk::PACK_SHRINK);
+  box->pack_start(*entry, Gtk::PACK_SHRINK);
+  dlg.set_default_response(Gtk::RESPONSE_ACCEPT);
+  dlg.show_all();
+  if (dlg.run() != Gtk::RESPONSE_ACCEPT)
+    return;
+  const auto tags = split_tags(std::string(entry->get_text()));
+  for (const auto& rel : rels)
+    cat.set_tags(rel, tags);
+  cat.save(root);
+  left_->refresh();
+  set_status("Tags saved.");
 }
 
 void LibraryWindow::on_open()

@@ -41,6 +41,7 @@ executable(
   'src/settings.cpp',
   'src/font_dialog.cpp',
   'src/library_devices.cpp',
+  'src/library_catalog.cpp',
   'src/library_window.cpp',
   'src/lastread.cpp',
   include_directories: inc,
