@@ -6,13 +6,12 @@ WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3. Binary `readomatic`. Suite ca
 
 ## High Priority
 
-None.
+- MOBI / AZW / AZW3 only if a small library (`libmobi`) is enough. Do not pull Calibre
+- Annotation highlighter
 
 ## Low Priority
 
 - Contents tree lines and remember expand/collapse
-- MOBI / AZW / AZW3 only if a small library (`libmobi`) is enough. Do not pull Calibre
-- Annotation highlighter
 - Dictionary lookup
 - TTS
 - Two books at once
