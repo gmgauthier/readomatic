@@ -9,7 +9,7 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-09-27)
 
-**v1.0.0.** EPUB 2/3 and MOBI/AZW/AZW3. Library, Copy, Contents/Index/Find. Tags through `v1.0.0`. Samples stay git-only. Later: highlighter, Contents tree lines.
+**v1.1.0.** Topic highlighter (yellow / light green / light blue / pink). Tags through `v1.1.0`. Samples stay git-only. Later: Contents tree lines.
 
 ## 1. Locked decisions
 
@@ -216,7 +216,7 @@ Done when: `dpkg-buildpackage` produces an installable `.deb` on Trixie.
 - Library organize: groups, tags, add, delete — **shipped in v0.4.0** (copy/open/last-page-read shipped in 0.3.0)
 - Edit → Copy — **shipped in v0.4.0**
 - Contents tree lines and remember expand/collapse
-- Annotation highlighter (yellow / light green / light blue / pink) — this tree; ship as v1.1.0
+- Annotation highlighter — **shipped in v1.1.0**
 - Dictionary lookup, TTS, two books at once
 
 ## 6. Tooling (Devuan Excalibur / Debian Trixie)

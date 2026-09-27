@@ -1,12 +1,12 @@
 # Read-O-Matic backlog
 
-Current release: **v1.0.0**. Last updated: 2026-09-27.
+Current release: **v1.1.0**. Last updated: 2026-09-27.
 
 WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3 and MOBI/AZW/AZW3. Binary `readomatic`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
 ## High Priority
 
-None. Annotation highlighter (yellow / light green / light blue / pink) is this branch — ship as **v1.1.0**.
+None.
 
 ## Low Priority
 
@@ -26,7 +26,9 @@ None. Annotation highlighter (yellow / light green / light blue / pink) is this 
 
 ## Shipped
 
-**v1.0.0** — MOBI / AZW / AZW3 via libmobi. WinHelp object is complete; highlighter stays High.
+**v1.1.0** — Topic highlighter: yellow, light green, light blue, pink.
+
+**v1.0.0** — MOBI / AZW / AZW3 via libmobi. WinHelp object is complete.
 
 **v0.4.0** — Edit → Copy (Ctrl+C). Library organize: groups, tags, add, delete.
 
