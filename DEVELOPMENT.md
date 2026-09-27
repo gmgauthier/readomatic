@@ -215,8 +215,8 @@ Done when: `dpkg-buildpackage` produces an installable `.deb` on Trixie.
 
 ### Later (not v1)
 
-- Library organize: groups, tags, add, delete — **this branch** (copy/open/last-page-read shipped in 0.3.0)
-- Edit → Copy — **this branch**
+- Library organize: groups, tags, add, delete — **shipped in v0.4.0** (copy/open/last-page-read shipped in 0.3.0)
+- Edit → Copy — **shipped in v0.4.0**
 - Contents tree lines and remember expand/collapse
 - MOBI/AZW, annotation highlighter, dictionary lookup, TTS, two books at once
 

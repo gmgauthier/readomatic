@@ -1,12 +1,12 @@
 # Read-O-Matic backlog
 
-Current release: **v0.3.0**. Last updated: 2026-09-19.
+Current release: **v0.4.0**. Last updated: 2026-09-27.
 
 WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3. Binary `readomatic`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
 ## High Priority
 
-None. Edit → Copy and library organize (groups, tags, add, delete) are in this branch.
+None.
 
 ## Low Priority
 
@@ -27,6 +27,8 @@ None. Edit → Copy and library organize (groups, tags, add, delete) are in this
 - Foliate / Okular re-theme
 
 ## Shipped
+
+**v0.4.0** — Edit → Copy (Ctrl+C). Library organize: groups, tags, add, delete.
 
 **v0.1.0 (M0–M6)** — Open EPUB 2/3 (`libarchive` + `libxml2`); Contents from nav/NCX; Index; Find; Back history; spine `<<` `>>`; bookmarks; Open Recent; last-topic restore; Appearance; print current topic; `.deb` / tarball / AppImage. Config: `~/.config/readomatic/`. Samples stay git-only.
 

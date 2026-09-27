@@ -1,3 +1,9 @@
+readomatic (0.4.0-1) unstable; urgency=medium
+
+  * Edit → Copy. Library organize: groups, tags, add, delete.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sun, 27 Sep 2026 10:00:00 +0100
+
 readomatic (0.3.0-1) unstable; urgency=medium
 
   * Library window: dual-pane copy to USB/MTP, last-page-read sidecar,
