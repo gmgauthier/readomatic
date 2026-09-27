@@ -1322,21 +1322,36 @@ void MainWindow::rebuild_bookmarks()
   auto* def =
       add_item(bookmark_menu_, "_Define…", sigc::mem_fun(*this, &MainWindow::on_define_bookmark));
   def->set_sensitive(book_.is_open());
+  auto* manage = add_item(bookmark_menu_, "_Bookmarks…",
+                          sigc::mem_fun(*this, &MainWindow::on_bookmarks_dialog));
+  manage->set_sensitive(book_.is_open());
   if (book_.is_open()) {
     const auto& rec = settings_.book(book_key());
     if (!rec.bookmarks.empty()) {
       bookmark_menu_.append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
       for (const auto& m : rec.bookmarks) {
         auto* item = Gtk::manage(new Gtk::MenuItem(m.label));
-        std::string jump = m.href;
-        if (!m.fragment.empty())
-          jump += "#" + m.fragment;
-        item->signal_activate().connect([this, jump]() { on_jump(jump); });
+        item->signal_activate().connect([this, m]() { jump_bookmark(m); });
         bookmark_menu_.append(*item);
       }
     }
   }
   bookmark_menu_.show_all();
+}
+
+void MainWindow::jump_bookmark(const Bookmark& mark)
+{
+  std::string jump = mark.href;
+  if (!mark.fragment.empty())
+    jump += "#" + mark.fragment;
+  on_jump(jump);
+  if (mark.fragment.empty() && mark.scroll > 0) {
+    const double scroll = mark.scroll;
+    Glib::signal_idle().connect([this, scroll]() {
+      set_topic_scroll(scroll);
+      return false;
+    });
+  }
 }
 
 void MainWindow::on_define_bookmark()
@@ -1369,6 +1384,7 @@ void MainWindow::on_define_bookmark()
   b.label = label;
   b.href = book_.current_href();
   b.fragment = loaded_fragment_;
+  b.scroll = topic_scroll();
   auto& rec = settings_.book(book_key());
   rec.path = book_.source_path();
   rec.title = book_.title();
@@ -1376,6 +1392,7 @@ void MainWindow::on_define_bookmark()
   for (auto& existing : rec.bookmarks) {
     if (existing.href == b.href && existing.fragment == b.fragment) {
       existing.label = b.label;
+      existing.scroll = b.scroll;
       replaced = true;
       break;
     }
@@ -1385,6 +1402,72 @@ void MainWindow::on_define_bookmark()
   persist();
   rebuild_bookmarks();
   set_status("Bookmark saved.");
+}
+
+void MainWindow::on_bookmarks_dialog()
+{
+  if (!book_.is_open())
+    return;
+  Gtk::Dialog dlg("Bookmarks", *this, true);
+  dlg.add_button("_Close", Gtk::RESPONSE_CLOSE);
+  dlg.add_button("_Delete", 1);
+  dlg.add_button("_Jump", Gtk::RESPONSE_OK);
+  dlg.set_default_size(380, 300);
+  dlg.set_default_response(Gtk::RESPONSE_OK);
+  auto* box = dlg.get_content_area();
+  box->set_border_width(8);
+  box->set_spacing(6);
+  auto* scroll = Gtk::manage(new Gtk::ScrolledWindow());
+  scroll->set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+  scroll->set_min_content_height(180);
+  auto* list = Gtk::manage(new Gtk::ListBox());
+  scroll->add(*list);
+  box->pack_start(*scroll, Gtk::PACK_EXPAND_WIDGET);
+
+  auto fill = [this, list]() {
+    for (auto* ch : list->get_children())
+      list->remove(*ch);
+    const auto& rec = settings_.book(book_key());
+    for (size_t i = 0; i < rec.bookmarks.size(); ++i) {
+      auto* lab = Gtk::manage(new Gtk::Label(rec.bookmarks[i].label));
+      lab->set_xalign(0.0);
+      lab->set_ellipsize(Pango::ELLIPSIZE_END);
+      auto* row = Gtk::manage(new Gtk::ListBoxRow());
+      row->set_data("i", GINT_TO_POINTER(static_cast<int>(i)));
+      row->add(*lab);
+      list->append(*row);
+    }
+    list->show_all();
+    if (auto* first = list->get_row_at_index(0))
+      list->select_row(*first);
+  };
+  fill();
+  list->signal_row_activated().connect(
+      [&dlg](Gtk::ListBoxRow*) { dlg.response(Gtk::RESPONSE_OK); });
+  dlg.show_all();
+  for (;;) {
+    const int r = dlg.run();
+    if (r != Gtk::RESPONSE_OK && r != 1)
+      break;
+    auto* row = list->get_selected_row();
+    if (!row)
+      continue;
+    const int i = GPOINTER_TO_INT(row->get_data("i"));
+    auto& rec = settings_.book(book_key());
+    if (i < 0 || static_cast<size_t>(i) >= rec.bookmarks.size())
+      continue;
+    if (r == 1) {
+      rec.bookmarks.erase(rec.bookmarks.begin() + i);
+      persist();
+      rebuild_bookmarks();
+      fill();
+      continue;
+    }
+    Bookmark mark = rec.bookmarks[static_cast<size_t>(i)];
+    dlg.hide();
+    jump_bookmark(mark);
+    break;
+  }
 }
 
 void MainWindow::on_library()

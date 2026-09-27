@@ -72,7 +72,7 @@ Print…
 Exit
 ```
 
-Edit: Copy (selection in the topic); Highlight (yellow / light green / light blue / pink) and Remove Highlight. Bookmark: Define… / list of this book’s marks. Options: Appearance… (font, page color). Help: About.
+Edit: Copy (selection in the topic); Highlight (yellow / light green / light blue / pink) and Remove Highlight. Bookmark: Define…, Bookmarks… (Jump / Delete), list of this book’s marks; restore scroll. Options: Appearance… (font, page color). Help: About.
 
 ## 3. Architecture
 

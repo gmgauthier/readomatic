@@ -12,6 +12,7 @@ struct Bookmark {
   std::string label;
   std::string href;
   std::string fragment;
+  double scroll = 0;
 };
 
 struct Highlight {

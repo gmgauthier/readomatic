@@ -177,14 +177,16 @@ void Settings::load()
     rec.scroll = get_dbl(kf, gs.c_str(), "scroll", 0);
     const int nm = get_int(kf, gs.c_str(), "marks", 0);
     for (int i = 0; i < nm; ++i) {
-      char lk[24], hk[24], fk[24];
+      char lk[24], hk[24], fk[24], sk[24];
       std::snprintf(lk, sizeof(lk), "mark%d_label", i);
       std::snprintf(hk, sizeof(hk), "mark%d_href", i);
       std::snprintf(fk, sizeof(fk), "mark%d_fragment", i);
+      std::snprintf(sk, sizeof(sk), "mark%d_scroll", i);
       Bookmark b;
       b.label = get_str(kf, g, lk);
       b.href = get_str(kf, g, hk);
       b.fragment = get_str(kf, g, fk);
+      b.scroll = get_dbl(kf, gs.c_str(), sk, 0);
       if (!b.label.empty() && !b.href.empty())
         rec.bookmarks.push_back(std::move(b));
     }
@@ -245,13 +247,15 @@ void Settings::save() const
     kf.set_double(g, "scroll", rec.scroll);
     kf.set_integer(g, "marks", static_cast<int>(rec.bookmarks.size()));
     for (int i = 0; i < static_cast<int>(rec.bookmarks.size()); ++i) {
-      char lk[40], hk[40], fk[40];
+      char lk[40], hk[40], fk[40], sk[40];
       std::snprintf(lk, sizeof(lk), "mark%d_label", i);
       std::snprintf(hk, sizeof(hk), "mark%d_href", i);
       std::snprintf(fk, sizeof(fk), "mark%d_fragment", i);
+      std::snprintf(sk, sizeof(sk), "mark%d_scroll", i);
       kf.set_string(g, lk, rec.bookmarks[static_cast<size_t>(i)].label);
       kf.set_string(g, hk, rec.bookmarks[static_cast<size_t>(i)].href);
       kf.set_string(g, fk, rec.bookmarks[static_cast<size_t>(i)].fragment);
+      kf.set_double(g, sk, rec.bookmarks[static_cast<size_t>(i)].scroll);
     }
     kf.set_integer(g, "hls", static_cast<int>(rec.highlights.size()));
     for (int i = 0; i < static_cast<int>(rec.highlights.size()); ++i) {

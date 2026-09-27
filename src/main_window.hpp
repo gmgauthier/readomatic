@@ -31,6 +31,8 @@ class MainWindow : public Gtk::Window {
   void on_quit();
   void on_about();
   void on_define_bookmark();
+  void on_bookmarks_dialog();
+  void jump_bookmark(const Bookmark& mark);
   void on_library();
   void on_font();
   void on_print();

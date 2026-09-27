@@ -20,7 +20,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**v1.1.0.** Topic highlighter (yellow, light green, light blue, pink). EPUB 2/3 and MOBI/AZW/AZW3. `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
+**v1.2.0.** Bookmark → Bookmarks… (Jump / Delete) and restore scroll. Topic highlighter from 1.1.0. `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
 
 | Doc | What |
 |---|---|
