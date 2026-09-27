@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "settings.hpp"
+
 #include <gtkmm.h>
 #include <libxml/tree.h>
 
@@ -21,6 +23,12 @@ class TopicView : public Gtk::TextView {
   bool select_match(const Glib::ustring& query, int occurrence);
   void apply_appearance(const std::string& family, int size_pt, int weight, int palette);
   bool copy_selection() const;
+  bool has_selection() const;
+  bool selection_range(int& start, int& end) const;
+  Glib::ustring selection_text() const;
+  void apply_highlights(const std::vector<Highlight>& marks, const std::string& href, int palette);
+  bool find_excerpt(const std::string& excerpt, int& start, int& end) const;
+  int char_count() const;
 
   sigc::signal<void, Glib::ustring>& signal_jump()
   {

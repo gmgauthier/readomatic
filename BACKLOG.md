@@ -6,7 +6,7 @@ WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3 and MOBI/AZW/AZW3. Binary `rea
 
 ## High Priority
 
-- Annotation highlighter
+None. Annotation highlighter (yellow / light green / light blue / pink) is this branch — ship as **v1.1.0**.
 
 ## Low Priority
 

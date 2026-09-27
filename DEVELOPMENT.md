@@ -72,7 +72,7 @@ Print…
 Exit
 ```
 
-Edit: Copy (selection in the topic). Bookmark: Define… / list of this book’s marks. Options: Appearance… (font, page color). Help: About.
+Edit: Copy (selection in the topic); Highlight (yellow / light green / light blue / pink) and Remove Highlight. Bookmark: Define… / list of this book’s marks. Options: Appearance… (font, page color). Help: About.
 
 ## 3. Architecture
 
@@ -216,7 +216,8 @@ Done when: `dpkg-buildpackage` produces an installable `.deb` on Trixie.
 - Library organize: groups, tags, add, delete — **shipped in v0.4.0** (copy/open/last-page-read shipped in 0.3.0)
 - Edit → Copy — **shipped in v0.4.0**
 - Contents tree lines and remember expand/collapse
-- MOBI/AZW, annotation highlighter, dictionary lookup, TTS, two books at once
+- Annotation highlighter (yellow / light green / light blue / pink) — this tree; ship as v1.1.0
+- Dictionary lookup, TTS, two books at once
 
 ## 6. Tooling (Devuan Excalibur / Debian Trixie)
 

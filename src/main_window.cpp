@@ -30,6 +30,78 @@ Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label, const sigc:
   return item;
 }
 
+std::string squeeze_excerpt(Glib::ustring text)
+{
+  Glib::ustring out;
+  bool space = true;
+  for (const gunichar ch : text) {
+    if (g_unichar_isspace(ch)) {
+      if (!space) {
+        out.push_back(' ');
+        space = true;
+      }
+    } else {
+      out.push_back(ch);
+      space = false;
+    }
+  }
+  if (!out.empty() && out[out.size() - 1] == ' ')
+    out = out.substr(0, out.size() - 1);
+  if (out.size() > 80)
+    out = out.substr(0, 80);
+  return out.raw();
+}
+
+void insert_highlight(std::vector<Highlight>& marks, Highlight n)
+{
+  n.colour = highlight_colour_id(n.colour);
+  if (n.end <= n.start || n.href.empty())
+    return;
+  std::vector<Highlight> out;
+  out.reserve(marks.size() + 1);
+  for (const auto& h : marks) {
+    if (h.href != n.href || h.end <= n.start || h.start >= n.end) {
+      out.push_back(h);
+      continue;
+    }
+    if (h.start < n.start) {
+      Highlight left = h;
+      left.end = n.start;
+      out.push_back(left);
+    }
+    if (h.end > n.end) {
+      Highlight right = h;
+      right.start = n.end;
+      out.push_back(right);
+    }
+  }
+  out.push_back(std::move(n));
+  marks.swap(out);
+}
+
+void erase_highlights(std::vector<Highlight>& marks, const std::string& href, int start, int end)
+{
+  std::vector<Highlight> out;
+  out.reserve(marks.size());
+  for (const auto& h : marks) {
+    if (h.href != href || h.end <= start || h.start >= end) {
+      out.push_back(h);
+      continue;
+    }
+    if (h.start < start) {
+      Highlight left = h;
+      left.end = start;
+      out.push_back(left);
+    }
+    if (h.end > end) {
+      Highlight right = h;
+      right.start = end;
+      out.push_back(right);
+    }
+  }
+  marks.swap(out);
+}
+
 void paint_nav_cell(Gtk::CellRenderer* cell, const Gtk::TreeModel::Path& path,
                     const Gtk::TreeModel::Path& current, const Gtk::TreeModel::Path& hover)
 {
@@ -162,6 +234,20 @@ void MainWindow::build_menu()
   copy->signal_activate().connect(sigc::mem_fun(*this, &MainWindow::on_copy));
   copy->add_accelerator("activate", accel_group_, GDK_KEY_c, Gdk::CONTROL_MASK, Gtk::ACCEL_VISIBLE);
   edit->append(*copy);
+  auto* hl_menu = Gtk::manage(new Gtk::Menu());
+  auto add_hl = [this, hl_menu](const char* id, const char* label) {
+    auto* item = Gtk::manage(new Gtk::MenuItem(label, true));
+    item->signal_activate().connect([this, id]() { on_highlight(id); });
+    hl_menu->append(*item);
+  };
+  add_hl("yellow", "_Yellow");
+  add_hl("green", "Light _green");
+  add_hl("blue", "Light _blue");
+  add_hl("pink", "_Pink");
+  auto* hl_item = Gtk::manage(new Gtk::MenuItem("_Highlight", true));
+  hl_item->set_submenu(*hl_menu);
+  edit->append(*hl_item);
+  add_item(*edit, "_Remove Highlight", sigc::mem_fun(*this, &MainWindow::on_remove_highlight));
   add_menu("_Edit", *edit);
 
   add_menu("_Bookmark", bookmark_menu_);
@@ -423,6 +509,7 @@ void MainWindow::build_body()
   nav_.set_size_request(220, -1);
 
   topic_view_.signal_jump().connect(sigc::mem_fun(*this, &MainWindow::on_jump));
+  topic_view_.signal_populate_popup().connect(sigc::mem_fun(*this, &MainWindow::on_topic_popup));
   topic_view_.get_buffer()->set_text(
       "Open an EPUB from File → Open…\n\n"
       "Contents, Index, and Find will list the book. This pane shows the topic.");
@@ -530,6 +617,7 @@ void MainWindow::show_current(const std::string& fragment)
   const auto slash = base.find_last_of('/');
   const std::string dir = slash == std::string::npos ? book_.extract_dir() : base.substr(0, slash);
   topic_view_.load_xhtml(xhtml, dir);
+  paint_highlights();
   if (!fragment.empty())
     topic_view_.scroll_to_id(fragment);
   loaded_fragment_ = fragment;
@@ -943,6 +1031,88 @@ void MainWindow::on_copy()
     set_status("Select text in the topic to copy.");
 }
 
+void MainWindow::paint_highlights()
+{
+  if (!book_.is_open())
+    return;
+  topic_view_.apply_highlights(settings_.book(book_key()).highlights, book_.current_href(),
+                               settings_.palette);
+}
+
+void MainWindow::on_highlight(const std::string& colour)
+{
+  if (!book_.is_open()) {
+    set_status("Open a book first.");
+    return;
+  }
+  int start = 0, end = 0;
+  if (!topic_view_.selection_range(start, end)) {
+    set_status("Select text in the topic to highlight.");
+    return;
+  }
+  Highlight h;
+  h.href = book_.current_href();
+  h.start = start;
+  h.end = end;
+  h.colour = highlight_colour_id(colour);
+  h.excerpt = squeeze_excerpt(topic_view_.selection_text());
+  auto& rec = settings_.book(book_key());
+  rec.path = book_.source_path();
+  rec.title = book_.title();
+  insert_highlight(rec.highlights, std::move(h));
+  persist();
+  auto end_it = topic_view_.get_buffer()->get_iter_at_offset(end);
+  topic_view_.get_buffer()->place_cursor(end_it);
+  paint_highlights();
+  set_status(Glib::ustring("Highlighted (") + highlight_colour_label(colour) + ").");
+}
+
+void MainWindow::on_remove_highlight()
+{
+  if (!book_.is_open())
+    return;
+  int start = 0, end = 0;
+  if (!topic_view_.selection_range(start, end)) {
+    Gtk::TextIter ins = topic_view_.get_buffer()->get_insert()->get_iter();
+    start = ins.get_offset();
+    end = start + 1;
+  }
+  auto& rec = settings_.book(book_key());
+  const size_t before = rec.highlights.size();
+  erase_highlights(rec.highlights, book_.current_href(), start, end);
+  if (rec.highlights.size() == before) {
+    set_status("No highlight in the selection.");
+    return;
+  }
+  persist();
+  paint_highlights();
+  set_status("Highlight removed.");
+}
+
+void MainWindow::on_topic_popup(Gtk::Menu* menu)
+{
+  if (!menu)
+    return;
+  menu->append(*Gtk::manage(new Gtk::SeparatorMenuItem()));
+  auto* hl = Gtk::manage(new Gtk::Menu());
+  const char* ids[] = {"yellow", "green", "blue", "pink"};
+  for (const char* id : ids) {
+    auto* item = Gtk::manage(new Gtk::MenuItem(highlight_colour_label(id)));
+    item->set_sensitive(book_.is_open());
+    item->signal_activate().connect([this, id]() { on_highlight(id); });
+    hl->append(*item);
+  }
+  auto* hl_item = Gtk::manage(new Gtk::MenuItem("Highlight"));
+  hl_item->set_submenu(*hl);
+  hl_item->set_sensitive(book_.is_open());
+  menu->append(*hl_item);
+  auto* rm = Gtk::manage(new Gtk::MenuItem("Remove Highlight"));
+  rm->set_sensitive(book_.is_open());
+  rm->signal_activate().connect(sigc::mem_fun(*this, &MainWindow::on_remove_highlight));
+  menu->append(*rm);
+  menu->show_all();
+}
+
 void MainWindow::on_not_yet(const Glib::ustring& feature)
 {
   set_status(feature + " arrives after this stub.");
@@ -952,6 +1122,7 @@ void MainWindow::apply_topic_chrome()
 {
   topic_view_.apply_appearance(settings_.font_family, settings_.font_size, settings_.font_weight,
                                settings_.palette);
+  paint_highlights();
 }
 
 void MainWindow::on_font()

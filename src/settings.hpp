@@ -14,6 +14,14 @@ struct Bookmark {
   std::string fragment;
 };
 
+struct Highlight {
+  std::string href;
+  int start = 0;
+  int end = 0;
+  std::string colour = "yellow";
+  std::string excerpt;
+};
+
 struct BookRecord {
   std::string path;
   std::string title;
@@ -21,7 +29,13 @@ struct BookRecord {
   std::string fragment;
   double scroll = 0;
   std::vector<Bookmark> bookmarks;
+  std::vector<Highlight> highlights;
 };
+
+const char* highlight_colour_id(const std::string& colour);
+const char* highlight_colour_label(const std::string& colour);
+const char* highlight_tag_name(const std::string& colour);
+const char* highlight_bg(const std::string& colour, int palette);
 
 struct RecentItem {
   std::string path;

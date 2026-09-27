@@ -106,6 +106,10 @@ void TopicView::ensure_tags()
     t->property_background() = "#404040";
     t->property_foreground() = "#FFFFFF";
   });
+  mk("hl-yellow", [](auto t) { t->property_background() = highlight_bg("yellow", 1); });
+  mk("hl-green", [](auto t) { t->property_background() = highlight_bg("green", 1); });
+  mk("hl-blue", [](auto t) { t->property_background() = highlight_bg("blue", 1); });
+  mk("hl-pink", [](auto t) { t->property_background() = highlight_bg("pink", 1); });
 }
 
 void TopicView::apply_appearance(const std::string& family, int size_pt, int weight, int palette)
@@ -192,6 +196,14 @@ void TopicView::apply_appearance(const std::string& family, int size_pt, int wei
     t->property_background() = hit_bg;
     t->property_foreground() = hit_fg;
   }
+  if (auto t = table->lookup("hl-yellow"))
+    t->property_background() = highlight_bg("yellow", palette);
+  if (auto t = table->lookup("hl-green"))
+    t->property_background() = highlight_bg("green", palette);
+  if (auto t = table->lookup("hl-blue"))
+    t->property_background() = highlight_bg("blue", palette);
+  if (auto t = table->lookup("hl-pink"))
+    t->property_background() = highlight_bg("pink", palette);
 }
 
 void TopicView::clear_topic()
@@ -210,6 +222,78 @@ bool TopicView::copy_selection() const
     return false;
   Gtk::Clipboard::get()->set_text(text);
   return true;
+}
+
+bool TopicView::has_selection() const
+{
+  Gtk::TextIter a, b;
+  return buf_->get_selection_bounds(a, b) && a != b;
+}
+
+bool TopicView::selection_range(int& start, int& end) const
+{
+  Gtk::TextIter a, b;
+  if (!buf_->get_selection_bounds(a, b) || a == b)
+    return false;
+  start = a.get_offset();
+  end = b.get_offset();
+  if (end < start)
+    std::swap(start, end);
+  return end > start;
+}
+
+Glib::ustring TopicView::selection_text() const
+{
+  Gtk::TextIter a, b;
+  if (!buf_->get_selection_bounds(a, b))
+    return {};
+  return buf_->get_text(a, b);
+}
+
+int TopicView::char_count() const
+{
+  return buf_->get_char_count();
+}
+
+bool TopicView::find_excerpt(const std::string& excerpt, int& start, int& end) const
+{
+  if (excerpt.empty())
+    return false;
+  Gtk::TextIter m0, m1;
+  const auto flags = Gtk::TEXT_SEARCH_VISIBLE_ONLY | Gtk::TEXT_SEARCH_TEXT_ONLY;
+  if (!buf_->begin().forward_search(excerpt, flags, m0, m1))
+    return false;
+  start = m0.get_offset();
+  end = m1.get_offset();
+  return end > start;
+}
+
+void TopicView::apply_highlights(const std::vector<Highlight>& marks, const std::string& href,
+                                 int palette)
+{
+  auto table = buf_->get_tag_table();
+  const char* names[] = {"hl-yellow", "hl-green", "hl-blue", "hl-pink"};
+  for (const char* n : names) {
+    if (auto t = table->lookup(n))
+      buf_->remove_tag(t, buf_->begin(), buf_->end());
+  }
+  const int nchars = buf_->get_char_count();
+  for (const auto& h : marks) {
+    if (h.href != href)
+      continue;
+    int start = h.start;
+    int end = h.end;
+    if (start < 0 || end > nchars || start >= end) {
+      if (!find_excerpt(h.excerpt, start, end))
+        continue;
+    }
+    const char* tag_name = highlight_tag_name(h.colour);
+    auto tag = table->lookup(tag_name);
+    if (!tag)
+      continue;
+    tag->property_background() = highlight_bg(h.colour, palette);
+    buf_->apply_tag(tag, buf_->get_iter_at_offset(start), buf_->get_iter_at_offset(end));
+  }
 }
 
 void TopicView::insert_text(const std::string& text, const std::vector<Glib::ustring>& tag_names)

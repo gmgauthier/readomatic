@@ -67,6 +67,10 @@ class MainWindow : public Gtk::Window {
   double topic_scroll() const;
   void set_topic_scroll(double value);
   void on_copy();
+  void on_highlight(const std::string& colour);
+  void on_remove_highlight();
+  void paint_highlights();
+  void on_topic_popup(Gtk::Menu* menu);
   void on_not_yet(const Glib::ustring& feature);
   void apply_topic_chrome();
   bool in_editable_focus() const;

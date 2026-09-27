@@ -57,6 +57,51 @@ std::string get_str(Glib::KeyFile& kf, const Glib::ustring& group, const char* k
 
 }  // namespace
 
+const char* highlight_colour_id(const std::string& colour)
+{
+  if (colour == "green")
+    return "green";
+  if (colour == "blue")
+    return "blue";
+  if (colour == "pink")
+    return "pink";
+  return "yellow";
+}
+
+const char* highlight_colour_label(const std::string& colour)
+{
+  if (colour == "green")
+    return "Light green";
+  if (colour == "blue")
+    return "Light blue";
+  if (colour == "pink")
+    return "Pink";
+  return "Yellow";
+}
+
+const char* highlight_tag_name(const std::string& colour)
+{
+  if (colour == "green")
+    return "hl-green";
+  if (colour == "blue")
+    return "hl-blue";
+  if (colour == "pink")
+    return "hl-pink";
+  return "hl-yellow";
+}
+
+const char* highlight_bg(const std::string& colour, int palette)
+{
+  const bool dark = palette == 2;
+  if (colour == "green")
+    return dark ? "#3D6B38" : "#C5E8B7";
+  if (colour == "blue")
+    return dark ? "#3A5A7A" : "#B8D4F0";
+  if (colour == "pink")
+    return dark ? "#7A4560" : "#F5C0D4";
+  return dark ? "#8A7A28" : "#FFF59A";
+}
+
 std::string Settings::key_for(const std::string& id)
 {
   if (id.empty())
@@ -143,6 +188,23 @@ void Settings::load()
       if (!b.label.empty() && !b.href.empty())
         rec.bookmarks.push_back(std::move(b));
     }
+    const int nh = get_int(kf, gs.c_str(), "hls", 0);
+    for (int i = 0; i < nh; ++i) {
+      char hk[24], sk[24], ek[24], ck[24], xk[24];
+      std::snprintf(hk, sizeof(hk), "hl%d_href", i);
+      std::snprintf(sk, sizeof(sk), "hl%d_start", i);
+      std::snprintf(ek, sizeof(ek), "hl%d_end", i);
+      std::snprintf(ck, sizeof(ck), "hl%d_colour", i);
+      std::snprintf(xk, sizeof(xk), "hl%d_excerpt", i);
+      Highlight h;
+      h.href = get_str(kf, g, hk);
+      h.start = get_int(kf, gs.c_str(), sk, 0);
+      h.end = get_int(kf, gs.c_str(), ek, 0);
+      h.colour = highlight_colour_id(get_str(kf, g, ck));
+      h.excerpt = get_str(kf, g, xk);
+      if (!h.href.empty() && h.end > h.start)
+        rec.highlights.push_back(std::move(h));
+    }
     books[key] = std::move(rec);
   }
 }
@@ -190,6 +252,21 @@ void Settings::save() const
       kf.set_string(g, lk, rec.bookmarks[static_cast<size_t>(i)].label);
       kf.set_string(g, hk, rec.bookmarks[static_cast<size_t>(i)].href);
       kf.set_string(g, fk, rec.bookmarks[static_cast<size_t>(i)].fragment);
+    }
+    kf.set_integer(g, "hls", static_cast<int>(rec.highlights.size()));
+    for (int i = 0; i < static_cast<int>(rec.highlights.size()); ++i) {
+      char hk[40], sk[40], ek[40], ck[40], xk[40];
+      std::snprintf(hk, sizeof(hk), "hl%d_href", i);
+      std::snprintf(sk, sizeof(sk), "hl%d_start", i);
+      std::snprintf(ek, sizeof(ek), "hl%d_end", i);
+      std::snprintf(ck, sizeof(ck), "hl%d_colour", i);
+      std::snprintf(xk, sizeof(xk), "hl%d_excerpt", i);
+      const auto& h = rec.highlights[static_cast<size_t>(i)];
+      kf.set_string(g, hk, h.href);
+      kf.set_integer(g, sk, h.start);
+      kf.set_integer(g, ek, h.end);
+      kf.set_string(g, ck, h.colour);
+      kf.set_string(g, xk, h.excerpt);
     }
   }
   try {

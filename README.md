@@ -20,7 +20,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**v1.0.0.** EPUB 2/3 and MOBI/AZW/AZW3 (libmobi). Library, Copy, Contents/Index/Find. `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
+**v1.0.0.** EPUB 2/3 and MOBI/AZW/AZW3 (libmobi). Library, Copy, Contents/Index/Find. This tree also highlights a selection in yellow, light green, light blue, or pink (next tagged release). `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
 
 | Doc | What |
 |---|---|
