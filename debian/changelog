@@ -1,3 +1,9 @@
+readomatic (1.0.0-1) unstable; urgency=medium
+
+  * v1: WinHelp chrome over EPUB 2/3 and MOBI/AZW/AZW3 (libmobi, no Calibre).
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Sun, 27 Sep 2026 11:30:00 +0100
+
 readomatic (0.4.0-1) unstable; urgency=medium
 
   * Edit → Copy. Library organize: groups, tags, add, delete.

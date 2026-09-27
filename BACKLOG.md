@@ -1,6 +1,6 @@
 # Read-O-Matic backlog
 
-Current release: **v0.4.0**. Last updated: 2026-09-27.
+Current release: **v1.0.0**. Last updated: 2026-09-27.
 
 WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3 and MOBI/AZW/AZW3. Binary `readomatic`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -25,6 +25,8 @@ WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3 and MOBI/AZW/AZW3. Binary `rea
 - Foliate / Okular re-theme
 
 ## Shipped
+
+**v1.0.0** — MOBI / AZW / AZW3 via libmobi. WinHelp object is complete; highlighter stays High.
 
 **v0.4.0** — Edit → Copy (Ctrl+C). Library organize: groups, tags, add, delete.
 

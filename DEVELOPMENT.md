@@ -1,17 +1,15 @@
 # Read-O-Matic development plan
 
-A gtkmm-3 **EPUB** reader for LCOS. The *window* is WinHelp 4 / WinHlp32 (and OS/2 `VIEW.EXE`); the *payload* is EPUB. Not a `.hlp` engine.
+A gtkmm-3 **EPUB / MOBI** reader for LCOS. The *window* is WinHelp 4 / WinHlp32 (and OS/2 `VIEW.EXE`); the *payload* is EPUB and MOBI/AZW/AZW3. Not a `.hlp` engine.
 
 Reference window: `brand/ui-reference.svg`  
 License: The Unlicense (`UNLICENSE`)  
 Binary: `readomatic`  
 Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.com/gmgauthier/readomatic
 
-## Status (2026-09-09)
+## Status (2026-09-27)
 
-**M6 is in the tree.** `debian/` + `scripts/release.sh` produce `.deb`, `meson dist` tarball, and an AppImage fallback. Samples stay git-only.
-
-v1.0 packaging is this slice. Later: Library window, Contents tree lines.
+**v1.0.0.** EPUB 2/3 and MOBI/AZW/AZW3. Library, Copy, Contents/Index/Find. Tags through `v1.0.0`. Samples stay git-only. Later: highlighter, Contents tree lines.
 
 ## 1. Locked decisions
 
