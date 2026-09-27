@@ -22,18 +22,6 @@
 namespace readomatic {
 namespace {
 
-bool looks_like_mobi(const std::string& path)
-{
-  const std::string name = Glib::path_get_basename(path);
-  const auto dot = name.rfind('.');
-  if (dot == std::string::npos || dot + 1 >= name.size())
-    return false;
-  std::string ext = name.substr(dot + 1);
-  for (char& c : ext)
-    c = static_cast<char>(g_ascii_tolower(static_cast<unsigned char>(c)));
-  return ext == "mobi" || ext == "azw" || ext == "azw3";
-}
-
 Gtk::MenuItem* add_item(Gtk::Menu& menu, const Glib::ustring& label, const sigc::slot<void()>& slot)
 {
   auto* item = Gtk::manage(new Gtk::MenuItem(label, true));
@@ -467,6 +455,8 @@ void MainWindow::on_open()
   filter->add_mime_type("application/x-mobipocket-ebook");
   filter->add_pattern("*.epub");
   filter->add_pattern("*.mobi");
+  filter->add_pattern("*.azw");
+  filter->add_pattern("*.azw3");
   dlg.add_filter(filter);
   dlg.set_current_folder(std::string(SOURCE_ROOT) + "/data/samples");
   if (dlg.run() != Gtk::RESPONSE_ACCEPT)
@@ -480,10 +470,6 @@ void MainWindow::open_path(const std::string& path)
   if (!Glib::file_test(path, Glib::FILE_TEST_EXISTS)) {
     set_status("File not found.");
     rebuild_recent();
-    return;
-  }
-  if (looks_like_mobi(path)) {
-    set_status("MOBI/AZW is not readable yet (EPUB only).");
     return;
   }
   if (!book_.open(path)) {

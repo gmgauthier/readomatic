@@ -101,6 +101,7 @@ class Book {
 
  private:
   bool extract_zip(const std::string& path);
+  bool extract_mobi(const std::string& path);
   bool parse_container();
   bool parse_opf();
   bool parse_nav();

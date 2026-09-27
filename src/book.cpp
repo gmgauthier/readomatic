@@ -7,6 +7,7 @@
 #include <libxml/HTMLparser.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#include <mobi.h>
 
 #include <glib.h>
 #include <glib.h>
@@ -15,10 +16,13 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
+#include <cstring>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 namespace readomatic {
 namespace {
@@ -84,6 +88,74 @@ std::string ascii_lower(std::string s)
                  [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return s;
 }
+
+bool ends_with_ci(const std::string& path, const char* ext)
+{
+  const std::string p = ascii_lower(path);
+  const std::string e = ascii_lower(ext);
+  return p.size() >= e.size() && p.compare(p.size() - e.size(), e.size(), e) == 0;
+}
+
+bool looks_like_mobi_path(const std::string& path)
+{
+  return ends_with_ci(path, ".mobi") || ends_with_ci(path, ".azw") || ends_with_ci(path, ".azw3") ||
+         ends_with_ci(path, ".prc");
+}
+
+bool pdb_is_mobi(const std::string& path)
+{
+  FILE* f = std::fopen(path.c_str(), "rb");
+  if (!f)
+    return false;
+  char buf[68] = {};
+  const size_t n = std::fread(buf, 1, sizeof(buf), f);
+  std::fclose(f);
+  if (n < 68)
+    return false;
+  return std::memcmp(buf + 60, "BOOKMOBI", 8) == 0 || std::memcmp(buf + 60, "TEXtREAd", 8) == 0;
+}
+
+std::string xml_escape_text(const std::string& in)
+{
+  std::string out;
+  out.reserve(in.size() + 8);
+  for (const char c : in) {
+    switch (c) {
+      case '&':
+        out += "&amp;";
+        break;
+      case '<':
+        out += "&lt;";
+        break;
+      case '>':
+        out += "&gt;";
+        break;
+      default:
+        out += c;
+        break;
+    }
+  }
+  return out;
+}
+
+bool write_bytes(const std::string& path, const unsigned char* data, size_t size)
+{
+  try {
+    Glib::file_set_contents(path, std::string(reinterpret_cast<const char*>(data), size));
+  } catch (const Glib::Error&) {
+    return false;
+  }
+  return true;
+}
+
+const char kEpubContainer[] =
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    "<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\">\n"
+    "  <rootfiles>\n"
+    "    <rootfile full-path=\"OEBPS/content.opf\" "
+    "media-type=\"application/oebps-package+xml\"/>\n"
+    "  </rootfiles>\n"
+    "</container>";
 
 std::string html_name(xmlNode* n)
 {
@@ -357,6 +429,144 @@ bool Book::extract_zip(const std::string& path)
   return ok;
 }
 
+bool Book::extract_mobi(const std::string& path)
+{
+  gchar* hex = g_compute_checksum_for_string(G_CHECKSUM_SHA256, path.c_str(), path.size());
+  const std::string hash = hex ? std::string(hex, 16) : std::string("book");
+  g_free(hex);
+  extract_dir_ = Glib::build_filename(Glib::get_user_cache_dir(), "readomatic", "books", hash);
+  std::error_code ec;
+  fs::remove_all(extract_dir_, ec);
+  const std::string meta = Glib::build_filename(extract_dir_, "META-INF");
+  const std::string oebps = Glib::build_filename(extract_dir_, "OEBPS");
+  fs::create_directories(meta, ec);
+  fs::create_directories(oebps, ec);
+  if (ec) {
+    set_error("Could not create cache directory.");
+    return false;
+  }
+
+  MOBIData* m = mobi_init();
+  if (!m) {
+    set_error("Could not initialize libmobi.");
+    return false;
+  }
+  MOBI_RET ret = mobi_load_filename(m, path.c_str());
+  if (ret != MOBI_SUCCESS) {
+    mobi_free(m);
+    set_error("Not a MOBI/AZW file.");
+    return false;
+  }
+  if (mobi_is_encrypted(m)) {
+    mobi_free(m);
+    set_error("This MOBI is encrypted.");
+    return false;
+  }
+  if (mobi_is_replica(m)) {
+    mobi_free(m);
+    set_error("Print Replica files are not readable.");
+    return false;
+  }
+
+  MOBIRawml* rawml = mobi_init_rawml(m);
+  if (!rawml) {
+    mobi_free(m);
+    set_error("Could not parse MOBI.");
+    return false;
+  }
+  ret = mobi_parse_rawml(rawml, m);
+  if (ret != MOBI_SUCCESS) {
+    mobi_free_rawml(rawml);
+    mobi_free(m);
+    set_error("Could not reconstruct MOBI markup.");
+    return false;
+  }
+
+  const std::string container = Glib::build_filename(meta, "container.xml");
+  if (!write_bytes(container, reinterpret_cast<const unsigned char*>(kEpubContainer),
+                   sizeof(kEpubContainer) - 1)) {
+    mobi_free_rawml(rawml);
+    mobi_free(m);
+    set_error("Could not write EPUB container.");
+    return false;
+  }
+
+  bool wrote_opf = false;
+  std::vector<std::string> parts;
+  auto dump_list = [&](MOBIPart* curr, const char* prefix, bool skip_first) -> bool {
+    if (skip_first && curr)
+      curr = curr->next;
+    for (; curr; curr = curr->next) {
+      if (!curr->data || curr->size == 0)
+        continue;
+      const MOBIFileMeta meta_t = mobi_get_filemeta_by_type(curr->type);
+      char name[64];
+      if (meta_t.type == T_OPF) {
+        std::snprintf(name, sizeof(name), "content.opf");
+        wrote_opf = true;
+      } else {
+        std::snprintf(name, sizeof(name), "%s%05zu.%s", prefix, curr->uid, meta_t.extension);
+      }
+      const std::string dest = Glib::build_filename(oebps, name);
+      if (!write_bytes(dest, curr->data, curr->size))
+        return false;
+      if (meta_t.type == T_HTML)
+        parts.emplace_back(name);
+    }
+    return true;
+  };
+
+  if (!dump_list(rawml->markup, "part", false) || !dump_list(rawml->flow, "flow", true) ||
+      !dump_list(rawml->resources, "resource", false)) {
+    mobi_free_rawml(rawml);
+    mobi_free(m);
+    set_error("Could not write reconstructed MOBI files.");
+    return false;
+  }
+
+  if (!wrote_opf) {
+    char fullname[256] = {};
+    if (mobi_get_fullname(m, fullname, sizeof(fullname) - 1) != MOBI_SUCCESS || fullname[0] == 0)
+      std::snprintf(fullname, sizeof(fullname), "Untitled");
+    std::ostringstream os;
+    os << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+       << "<package version=\"2.0\" unique-identifier=\"uid\" "
+          "xmlns=\"http://www.idpf.org/2007/opf\">\n"
+       << "  <metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n"
+       << "    <dc:title>" << xml_escape_text(fullname) << "</dc:title>\n"
+       << "    <dc:identifier id=\"uid\">" << xml_escape_text(path) << "</dc:identifier>\n"
+       << "  </metadata>\n"
+       << "  <manifest>\n";
+    for (size_t i = 0; i < parts.size(); ++i) {
+      os << "    <item id=\"part" << i << "\" href=\"" << parts[i]
+         << "\" media-type=\"application/xhtml+xml\"/>\n";
+    }
+    os << "  </manifest>\n  <spine>\n";
+    for (size_t i = 0; i < parts.size(); ++i)
+      os << "    <itemref idref=\"part" << i << "\"/>\n";
+    os << "  </spine>\n</package>\n";
+    const std::string opf = os.str();
+    if (!write_bytes(Glib::build_filename(oebps, "content.opf"),
+                     reinterpret_cast<const unsigned char*>(opf.data()), opf.size())) {
+      mobi_free_rawml(rawml);
+      mobi_free(m);
+      set_error("Could not write OPF.");
+      return false;
+    }
+  }
+
+  if (parts.empty() && !wrote_opf) {
+    mobi_free_rawml(rawml);
+    mobi_free(m);
+    set_error("No readable text in this MOBI.");
+    return false;
+  }
+
+  mobi_free_rawml(rawml);
+  mobi_free(m);
+  return true;
+}
+
 bool Book::parse_container()
 {
   const std::string container = Glib::build_filename(extract_dir_, "META-INF", "container.xml");
@@ -509,7 +719,13 @@ bool Book::open(const std::string& path)
   gchar* canon = g_canonicalize_filename(path.c_str(), nullptr);
   source_path_ = canon ? canon : path;
   g_free(canon);
-  if (!extract_zip(path)) {
+  const bool mobi = looks_like_mobi_path(path) || pdb_is_mobi(path);
+  if (mobi) {
+    if (!extract_mobi(path)) {
+      close();
+      return false;
+    }
+  } else if (!extract_zip(path)) {
     close();
     return false;
   }
@@ -552,6 +768,8 @@ bool Book::select_href(const std::string& href)
   if (hash != std::string::npos)
     file = file.substr(0, hash);
   if (file.empty())
+    return false;
+  if (skip_spine_href(file))
     return false;
   for (int i = 0; i < spine_count(); ++i) {
     if (spine_href(i) == file)
@@ -622,6 +840,19 @@ bool Book::skip_spine_href(const std::string& href) const
     const std::string b = basename(it.href);
     if (b.find("cover") != std::string::npos || b.find("titlepage") != std::string::npos ||
         b.find("wrap") != std::string::npos)
+      return true;
+    const std::string html = load_document(href);
+    const std::string low = ascii_lower(html);
+    if (low.find("coverpage") != std::string::npos ||
+        low.find("<title>\"cover\"") != std::string::npos)
+      return true;
+    xmlDoc* doc = parse_xhtml_memory(html);
+    std::string raw;
+    if (doc) {
+      collect_plain(xmlDocGetRootElement(doc), raw);
+      xmlFreeDoc(doc);
+    }
+    if (squeeze_ws(raw).empty())
       return true;
     return false;
   }

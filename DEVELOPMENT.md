@@ -22,10 +22,10 @@ v1.0 packaging is this slice. Later: Library window, Contents tree lines.
 | Toolkit | C++17, gtkmm-3.0, GTK3 CSS, Meson |
 | Look | One decorated window. Left notebook (Contents, Index, Find). Right: topic. No URL bar, no browser tabs, no shelf of books |
 | v1 format | EPUB 2 and 3 (zip + OPF + XHTML + nav or NCX). One file, one window |
-| Later format | MOBI / AZW / AZW3 only if a small library (`libmobi`) is enough. Do not pull Calibre |
+| Later format | MOBI / AZW / AZW3 via `libmobi` (in this tree). Do not pull Calibre |
 | Never | `.hlp`, `.chm` as a product goal. Those are the *look*, not the file type |
 | Topic renderer | **`Gtk::TextView` for v1.** Map a small XHTML subset into text tags + pixbufs. Prefer the poorer renderer if it keeps the Help-file feeling. WebKitGTK is a one-time escape hatch **only if M1 proves a real EPUB unreadable** — not a browser chrome |
-| EPUB parse | `libarchive` for the zip; `libxml2` for OPF / nav / NCX / XHTML. No Calibre, no Java |
+| EPUB parse | `libarchive` for the zip; `libxml2` for OPF / nav / NCX / XHTML. MOBI/AZW/AZW3 via `libmobi` reconstructed into the same OPF layout. No Calibre, no Java |
 | Open | File → **Open…** replaces the current book (WinHelp: one help file). Close clears. No New vs Add. Thunar Open with: `Exec=readomatic %F`, leftover argv, flock + `$XDG_RUNTIME_DIR/readomatic.sock`. No D-Bus (`APPLICATION_NON_UNIQUE`). One path; extra files ignored. |
 | Jumps | Underlined navy (or theme-selected) links. Click pushes Back stack and opens the target href in the topic pane |
 | Back | History stack of (spine href, scroll). Not browser-style tabs |

@@ -17,11 +17,12 @@ Version comes from `meson.build` (currently `0.4.0`).
 - libarchive
 - libxml2
 - fontconfig
+- libmobi
 
 On Debian / Devuan / LCOS:
 
 ```
-sudo apt install libgtkmm-3.0-1t64 libarchive13 libxml2 fontconfig
+sudo apt install libgtkmm-3.0-1t64 libarchive13 libxml2 fontconfig libmobi0t64
 ```
 
 (Package names on older Debian may be `libgtkmm-3.0-1v5`.)
@@ -61,7 +62,7 @@ Uninstall: `sudo apt remove readomatic`.
 tar -xf readomatic-0.4.0.tar.xz
 cd readomatic-0.4.0
 sudo apt install build-essential meson ninja-build pkg-config \
-  libgtkmm-3.0-dev libarchive-dev libxml2-dev libfontconfig1-dev
+  libgtkmm-3.0-dev libarchive-dev libxml2-dev libfontconfig1-dev libmobi-dev
 meson setup build --prefix=/usr
 meson compile -C build
 sudo meson install -C build

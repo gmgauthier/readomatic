@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Read-O-Matic
-Comment=An EPUB reader for The Lunduke Computer Operating System
+Comment=An EPUB and MOBI reader for The Lunduke Computer Operating System
 Exec=readomatic %F
 Icon=readomatic
 Terminal=false

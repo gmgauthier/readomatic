@@ -4,7 +4,7 @@
 
 ![Read-O-Matic on LCOS](brand/screenshot-read.png)
 
-An **EPUB reader** for The Lunduke Computer Operating System (LCOS). The window is WinHelp 4 / OS/2 `VIEW.EXE`, not a web browser.
+An **EPUB / MOBI reader** for The Lunduke Computer Operating System (LCOS). The window is WinHelp 4 / OS/2 `VIEW.EXE`, not a web browser.
 
 Binary: `readomatic`. Unlicense.
 
@@ -20,18 +20,18 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**v0.4.0.** Edit → Copy; library groups, tags, add, delete. Library window (0.3.0) dual-pane copy, last-page-read, Open. `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
+**v0.4.0.** Edit → Copy; library groups, tags, add, delete. Library window (0.3.0) dual-pane copy, last-page-read, Open. This tree also opens MOBI/AZW/AZW3 via libmobi (next tagged release). `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
 
 | Doc | What |
 |---|---|
 | [DEVELOPMENT.md](DEVELOPMENT.md) | Locked decisions, architecture, milestones M0–M6, branching, semver, lint |
 
-Thunar Open with: EPUB (payload) and MOBI (listed; not readable yet). `Exec=readomatic %F`. Single-instance via flock + Unix socket (no D-Bus).
+Thunar Open with: EPUB, MOBI, AZW, AZW3. `Exec=readomatic %F`. Single-instance via flock + Unix socket (no D-Bus).
 
 ## Build
 
 ```
-sudo apt install build-essential meson ninja-build pkg-config g++ libgtkmm-3.0-dev clang-format cppcheck
+sudo apt install build-essential meson ninja-build pkg-config g++ libgtkmm-3.0-dev libarchive-dev libxml2-dev libfontconfig1-dev libmobi-dev clang-format cppcheck
 meson setup build
 meson compile -C build
 ./build/readomatic

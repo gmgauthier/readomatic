@@ -2,17 +2,15 @@
 
 Current release: **v0.4.0**. Last updated: 2026-09-27.
 
-WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3. Binary `readomatic`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
+WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3 and MOBI/AZW/AZW3. Binary `readomatic`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
 ## High Priority
 
-None.
+- Annotation highlighter
 
 ## Low Priority
 
 - Contents tree lines and remember expand/collapse
-- MOBI / AZW / AZW3 only if a small library (`libmobi`) is enough. Do not pull Calibre
-- Annotation highlighter
 - Dictionary lookup
 - TTS
 - Two books at once

@@ -11,7 +11,8 @@ Build-Depends:
  libgtkmm-3.0-dev,
  libarchive-dev,
  libxml2-dev,
- libfontconfig1-dev
+ libfontconfig1-dev,
+ libmobi-dev
 Standards-Version: 4.7.0
 Homepage: https://github.com/gmgauthier/readomatic
 Vcs-Git: https://github.com/gmgauthier/readomatic.git
@@ -23,7 +24,7 @@ Architecture: any
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
-Description: EPUB reader for The Lunduke Computer Operating System
- Read-O-Matic is a single-window gtkmm-3 EPUB reader in the WinHelp 4 /
- OS/2 VIEW.EXE shape. Local EPUB files only, one LCOS-flavoured skin,
- no browser engine.
+Description: EPUB/MOBI reader for The Lunduke Computer Operating System
+ Read-O-Matic is a single-window gtkmm-3 EPUB and MOBI/AZW/AZW3 reader
+ in the WinHelp 4 / OS/2 VIEW.EXE shape. Local files only, one
+ LCOS-flavoured skin, no browser engine.

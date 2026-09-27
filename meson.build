@@ -15,6 +15,7 @@ gtkmm = dependency('gtkmm-3.0')
 libarchive = dependency('libarchive')
 libxml = dependency('libxml-2.0')
 fontconfig = dependency('fontconfig')
+libmobi = dependency('libmobi')
 
 conf = configuration_data()
 conf.set_quoted('VERSION', meson.project_version())
@@ -45,7 +46,7 @@ executable(
   'src/library_window.cpp',
   'src/lastread.cpp',
   include_directories: inc,
-  dependencies: [gtkmm, libarchive, libxml, fontconfig],
+  dependencies: [gtkmm, libarchive, libxml, fontconfig, libmobi],
   install: true,
   install_dir: get_option('bindir'),
 )
