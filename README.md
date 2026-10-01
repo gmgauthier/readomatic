@@ -20,7 +20,7 @@ LCOS itself: [https://github.com/BryanLunduke/LCOS](https://github.com/BryanLund
 
 ## Status
 
-**v1.2.0.** Bookmark → Bookmarks… (Jump / Delete) and restore scroll. Topic highlighter from 1.1.0. `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
+**v1.2.1.** Bookmark → Bookmarks… (Jump / Delete) and restore scroll. Topic highlighter from 1.1.0. Headless test suite and BUG-BACKLOG.md. `.deb` / tarball / AppImage via `./scripts/release.sh`. See [INSTALL.md](INSTALL.md). Samples in `data/samples/` (git-only).
 
 | Doc | What |
 |---|---|
@@ -41,7 +41,7 @@ PR lint gate: `./scripts/lint.sh` (CI runs this; no `--fix`). Format `src/` loca
 
 ## Install
 
-Preferred: `./scripts/release.sh deb` then `sudo apt install ./dist/readomatic_1.2.0-1_amd64.deb`. Details in [INSTALL.md](INSTALL.md).
+Preferred: `./scripts/release.sh deb` then `sudo apt install ./dist/readomatic_1.2.1-1_amd64.deb`. Details in [INSTALL.md](INSTALL.md).
 
 ## License
 
