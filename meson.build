@@ -74,3 +74,12 @@ install_data(
   rename: 'readomatic.svg',
   install_dir: get_option('datadir') / 'icons' / 'hicolor' / 'scalable' / 'apps',
 )
+
+readomatic_tests = executable(
+  'readomatic-tests',
+  'tests/test_place.cpp',
+  'src/lastread.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm],
+)
+test('place', readomatic_tests)
