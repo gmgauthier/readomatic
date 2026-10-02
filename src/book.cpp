@@ -996,6 +996,19 @@ bool Book::advance_spine(int delta)
   return true;
 }
 
+void Book::readable_span(int& number, int& total) const
+{
+  number = 0;
+  total = 0;
+  for (int i = 0; i < spine_count(); ++i) {
+    if (skip_spine_href(spine_[static_cast<size_t>(i)]))
+      continue;
+    ++total;
+    if (i == spine_index_)
+      number = total;
+  }
+}
+
 std::string Book::href_for_id(const std::string& id) const
 {
   if (id.empty())

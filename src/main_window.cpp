@@ -624,7 +624,16 @@ void MainWindow::show_current(const std::string& fragment)
   if (!suppress_history_)
     history_.push(href, fragment);
   highlight_contents();
-  set_status(topic_status_text(book_.title(), book_.spine_index(), book_.spine_count()));
+  int number = 0;
+  int total = 0;
+  book_.readable_span(number, total);
+  if (total < 1) {
+    number = book_.spine_index() + 1;
+    total = book_.spine_count();
+  } else if (number < 1) {
+    number = 1;
+  }
+  set_status(topic_status_text(book_.title(), number - 1, total));
 }
 
 void MainWindow::fill_contents()
