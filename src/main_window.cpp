@@ -942,8 +942,8 @@ void MainWindow::on_jump(const Glib::ustring& href)
     }
     return;
   }
-  const std::string path = book_.resolve(file);
-  if (path.empty() || !Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR)) {
+  const std::string path = book_.resolve_content_link(file);
+  if (path.empty()) {
     set_status("Jump not in this book.");
     return;
   }

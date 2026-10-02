@@ -2,19 +2,11 @@
 
 Reviewed 2026-10-01 against the 1.2.0 sources.
 
-`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves.
+`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once.
 
 Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE_NODOTDOT`). The holes below are the path used after extract.
 
 ## Open
-
-### Content links are resolved against the OPF directory and never decoded
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/book.cpp:801`, `src/main_window.cpp:945`
-- Trigger: A spine item `text/ch1.xhtml` with `<a href="ch2.xhtml">` (normal EPUB: relative to the document). Or a manifest href `Chapter%201.xhtml` when the zip entry is `Chapter 1.xhtml`.
-- Outcome: `resolve` always joins a relative href to `opf_dir_`, not to the document's directory, and nothing percent-decodes. Jump reports "Jump not in this book" or opens the wrong file. The fragment never scrolls. Books whose documents sit beside the OPF hide it. `show_current` passes the document directory only to the image walker.
 
 ### A failed open wipes the reason
 
@@ -105,6 +97,15 @@ Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE
 - Outcome: `resolve_lastread` is called with `&settings_` on `copy_thread_`. Highlight, bookmark, and `persist` mutate `settings_.books` on the UI thread. No mutex covers that map. The data race can crash or corrupt the in-memory bookmark and highlight map.
 
 ## Closed
+
+### Content links are resolved against the OPF directory and never decoded
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/book.cpp:801`, `src/main_window.cpp:945`
+- Trigger: A spine item `text/ch1.xhtml` with `<a href="ch2.xhtml">` (normal EPUB: relative to the document). Or a manifest href `Chapter%201.xhtml` when the zip entry is `Chapter 1.xhtml`.
+- Outcome: `resolve` always joins a relative href to `opf_dir_`, not to the document's directory, and nothing percent-decodes. Jump reports "Jump not in this book" or opens the wrong file. The fragment never scrolls. Books whose documents sit beside the OPF hide it. `show_current` passes the document directory only to the image walker.
+- Fixed in v1.2.4: A content link is resolved from the current document's directory and percent-decoded once. An encoded `..` that would leave the book is rejected. A spine or manifest href stays relative to the OPF, and an encoded manifest name opens the decoded zip entry. When the document-relative file is absent, the OPF-relative path is still used.
 
 ### Topic images are not confined to the book
 
