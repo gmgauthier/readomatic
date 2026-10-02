@@ -407,6 +407,14 @@ void Book::set_error(const std::string& msg)
   error_ = msg;
 }
 
+bool Book::fail_open()
+{
+  const std::string why = error_;
+  close();
+  error_ = why;
+  return false;
+}
+
 void Book::close()
 {
   if (!extract_dir_.empty()) {
@@ -772,18 +780,13 @@ bool Book::open(const std::string& path)
   g_free(canon);
   const bool mobi = looks_like_mobi_path(path) || pdb_is_mobi(path);
   if (mobi) {
-    if (!extract_mobi(path)) {
-      close();
-      return false;
-    }
+    if (!extract_mobi(path))
+      return fail_open();
   } else if (!extract_zip(path)) {
-    close();
-    return false;
+    return fail_open();
   }
-  if (!parse_container() || !parse_opf()) {
-    close();
-    return false;
-  }
+  if (!parse_container() || !parse_opf())
+    return fail_open();
   parse_nav();
   if (identifier_.empty())
     identifier_ = source_path_;

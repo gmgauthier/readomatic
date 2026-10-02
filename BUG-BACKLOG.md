@@ -2,19 +2,11 @@
 
 Reviewed 2026-10-01 against the 1.2.0 sources.
 
-`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once.
+`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once. `open` checks that a failed open keeps its reason: not a zip, not a MOBI, a missing or unreadable container, a missing OPF, and an empty spine. A later successful open clears that reason.
 
 Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE_NODOTDOT`). The holes below are the path used after extract.
 
 ## Open
-
-### A failed open wipes the reason
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/book.cpp:377`, `src/book.cpp:724`
-- Trigger: Encrypted MOBI, a file that is not a zip, a missing container, or an empty spine.
-- Outcome: `extract_mobi`, `extract_zip`, and `parse_opf` call `set_error`, then `open` does `close(); return false`. `close()` ends with `error_.clear()`. Status is always "Could not open EPUB.", including for MOBI. The specific error never reaches the UI.
 
 ### The status buffer chops the page numbers off a long title
 
@@ -97,6 +89,15 @@ Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE
 - Outcome: `resolve_lastread` is called with `&settings_` on `copy_thread_`. Highlight, bookmark, and `persist` mutate `settings_.books` on the UI thread. No mutex covers that map. The data race can crash or corrupt the in-memory bookmark and highlight map.
 
 ## Closed
+
+### A failed open wipes the reason
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/book.cpp` `close`, `Book::open`
+- Trigger: Encrypted MOBI, a file that is not a zip, a missing container, or an empty spine.
+- Outcome: `extract_mobi`, `extract_zip`, and `parse_opf` call `set_error`, then `open` does `close(); return false`. `close()` ends with `error_.clear()`. Status is always "Could not open EPUB.", including for MOBI. The specific error never reaches the UI.
+- Fixed in v1.2.5: A failed open still clears the extract directory and reports the book closed, and it keeps the reason. A later successful open, and an ordinary close, clear that reason.
 
 ### Content links are resolved against the OPF directory and never decoded
 
