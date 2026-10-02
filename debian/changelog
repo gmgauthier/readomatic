@@ -1,3 +1,9 @@
+readomatic (1.2.3-1) unstable; urgency=medium
+
+  * Keep a topic image inside the extracted book.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Fri, 02 Oct 2026 01:12:00 +0100
+
 readomatic (1.2.2-1) unstable; urgency=medium
 
   * Keep a document href inside the extracted book.
