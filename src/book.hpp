@@ -126,4 +126,10 @@ class Book {
   int spine_index_ = 0;
 };
 
+/* page_index is zero-based, matching Book::spine_index(). The page numbers are never clipped. */
+inline std::string topic_status_text(const std::string& title, int page_index, int page_count)
+{
+  return title + " — " + std::to_string(page_index + 1) + " of " + std::to_string(page_count);
+}
+
 }  // namespace readomatic
