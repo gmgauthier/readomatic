@@ -111,3 +111,12 @@ readomatic_link_tests = executable(
   dependencies: [gtkmm, libarchive, libxml, libmobi],
 )
 test('links', readomatic_link_tests)
+
+readomatic_open_tests = executable(
+  'readomatic-open-tests',
+  'tests/test_open.cpp',
+  'src/book.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libarchive, libxml, libmobi],
+)
+test('open', readomatic_open_tests)

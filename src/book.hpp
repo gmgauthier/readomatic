@@ -108,6 +108,7 @@ class Book {
   bool parse_opf();
   bool parse_nav();
   void set_error(const std::string& msg);
+  bool fail_open();
   bool skip_spine_href(const std::string& href) const;
 
   std::string error_;
