@@ -333,6 +333,17 @@ std::string dirname_of(const std::string& path)
   return path.substr(0, pos);
 }
 
+bool inside_directory(const fs::path& root, const fs::path& candidate)
+{
+  auto base = root.begin();
+  auto full = candidate.begin();
+  for (; base != root.end(); ++base, ++full) {
+    if (full == candidate.end() || *base != *full)
+      return false;
+  }
+  return full != candidate.end();
+}
+
 bool copy_archive_data(archive* src, archive* dst)
 {
   const void* buf = nullptr;
@@ -796,18 +807,30 @@ std::string Book::resolve(const std::string& href) const
   const auto hash = h.find('#');
   if (hash != std::string::npos)
     h = h.substr(0, hash);
-  if (h.empty())
+  if (h.empty() || extract_dir_.empty())
     return {};
-  fs::path full = fs::path(h).is_absolute() ? fs::path(extract_dir_) / h.substr(h[0] == '/' ? 1 : 0)
-                                            : fs::path(opf_dir_) / h;
-  full = full.lexically_normal();
+  const fs::path joined = fs::path(h).is_absolute()
+                              ? fs::path(extract_dir_) / h.substr(h[0] == '/' ? 1 : 0)
+                              : fs::path(opf_dir_) / h;
+  std::error_code ec;
+  const fs::path root = fs::weakly_canonical(fs::path(extract_dir_), ec);
+  if (ec)
+    return {};
+  ec.clear();
+  const fs::path full = fs::weakly_canonical(joined.lexically_normal(), ec);
+  if (ec || !inside_directory(root, full))
+    return {};
   return full.string();
 }
 
 std::string Book::load_document(const std::string& href) const
 {
   const std::string path = resolve(href);
-  if (path.empty() || !Glib::file_test(path, Glib::FILE_TEST_IS_REGULAR))
+  if (path.empty())
+    return {};
+  std::error_code ec;
+  const fs::file_status st = fs::symlink_status(path, ec);
+  if (ec || !fs::is_regular_file(st))
     return {};
   std::ifstream in(path);
   if (!in)

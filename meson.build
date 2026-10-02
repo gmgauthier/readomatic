@@ -83,3 +83,12 @@ readomatic_tests = executable(
   dependencies: [gtkmm],
 )
 test('place', readomatic_tests)
+
+readomatic_confine_tests = executable(
+  'readomatic-confine-tests',
+  'tests/test_confine.cpp',
+  'src/book.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libarchive, libxml, libmobi],
+)
+test('confine', readomatic_confine_tests)
