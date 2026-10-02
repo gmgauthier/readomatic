@@ -5,6 +5,8 @@
 #include "check.hpp"
 
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -67,6 +69,78 @@ int main()
     CHECK(!readomatic::load_lastread(dir + "/missing.epub").present);
     std::remove(readomatic::lastread_path(book).c_str());
     rmdir(dir.c_str());
+  }
+
+  {
+    readomatic::LastRead cfi;
+    cfi.pbr = "epubcfi(/6/4!/4/2:0)";
+    cfi.cpage = 0;
+    cfi.npage = 40;
+    CHECK(readomatic::canonical_lastread(cfi) == cfi.pbr);
+
+    const std::string dir =
+        "/tmp/readomatic-cpage-" + std::to_string(static_cast<long long>(getpid()));
+    mkdir(dir.c_str(), 0700);
+    const std::string book = dir + "/pocket.epub";
+    {
+      std::ofstream side(readomatic::lastread_path(book));
+      side << "[position]\n"
+           << "pbr=" << cfi.pbr << "\n"
+           << "cpage=0\n"
+           << "npage=40\n";
+    }
+    const readomatic::LastRead loaded = readomatic::load_lastread(book);
+    CHECK(loaded.present);
+    CHECK(loaded.pbr == cfi.pbr);
+    CHECK(loaded.cpage == 0);
+    CHECK(loaded.npage == 40);
+    CHECK(readomatic::canonical_lastread(loaded) == cfi.pbr);
+
+    readomatic::Settings settings;
+    const readomatic::LastRead resolved = readomatic::resolve_lastread(book, &settings, "");
+    CHECK(resolved.present);
+    CHECK(resolved.pbr == cfi.pbr);
+
+    readomatic::save_lastread(book, loaded);
+    const readomatic::LastRead round = readomatic::load_lastread(book);
+    CHECK(round.present);
+    CHECK(round.pbr == cfi.pbr);
+    CHECK(round.cpage == 0);
+
+    readomatic::LastRead unread;
+    unread.cpage = 0;
+    readomatic::save_lastread(book, unread);
+    CHECK(!readomatic::load_lastread(book).present);
+
+    const std::string device = dir + "/device";
+    const std::string dbdir = device + "/system/explorer-3";
+    std::filesystem::create_directories(dbdir);
+    const std::string db = dbdir + "/explorer-3.db";
+    {
+      std::ofstream sql(dir + "/pocket.sql");
+      sql << "CREATE TABLE files (filename TEXT, book_id INTEGER);\n"
+          << "CREATE TABLE books_settings (bookid INTEGER, position TEXT, cpage INTEGER, npage "
+             "INTEGER);\n"
+          << "INSERT INTO files VALUES ('pocket.epub', 7);\n"
+          << "INSERT INTO books_settings VALUES (7, 'epubcfi(/6/2!/4)', 0, 12);\n"
+          << "INSERT INTO files VALUES ('fresh.epub', 8);\n"
+          << "INSERT INTO books_settings VALUES (8, '', 0, 0);\n";
+    }
+    const std::string import = "sqlite3 \"" + db + "\" < \"" + dir + "/pocket.sql\"";
+    CHECK(std::system(import.c_str()) == 0);
+    const readomatic::LastRead from_device =
+        readomatic::lastread_from_pocketbook(device, dir + "/library/pocket.epub");
+    CHECK(from_device.present);
+    CHECK(from_device.pbr == "epubcfi(/6/2!/4)");
+    CHECK(from_device.cpage == 0);
+    CHECK(from_device.npage == 12);
+    CHECK(readomatic::canonical_lastread(from_device) == from_device.pbr);
+    const readomatic::LastRead fresh =
+        readomatic::lastread_from_pocketbook(device, dir + "/library/fresh.epub");
+    CHECK(!fresh.present);
+    CHECK(fresh.cpage == 0);
+
+    std::filesystem::remove_all(dir);
   }
 
   return suite_test::done("place");
