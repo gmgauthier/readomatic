@@ -53,6 +53,15 @@ std::string canonical_lastread(const LastRead& pos)
   return os.str();
 }
 
+bool same_last_page(const LastRead& a, const LastRead& b)
+{
+  // Two unread books both canonicalize to an empty string. That is not a
+  // shared last page, so a transfer must still replace the destination file.
+  if (!a.present || !b.present)
+    return false;
+  return canonical_lastread(a) == canonical_lastread(b);
+}
+
 LastRead load_lastread(const std::string& book_path)
 {
   LastRead pos;

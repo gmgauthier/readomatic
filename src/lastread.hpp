@@ -20,6 +20,7 @@ struct LastRead {
 
 std::string lastread_path(const std::string& book_path);
 std::string canonical_lastread(const LastRead& pos);
+bool same_last_page(const LastRead& a, const LastRead& b);
 LastRead load_lastread(const std::string& book_path);
 void save_lastread(const std::string& book_path, const LastRead& pos);
 LastRead lastread_from_settings(const Settings& settings, const std::string& book_path);
