@@ -1,3 +1,9 @@
+readomatic (1.2.8-1) unstable; urgency=medium
+
+  * Count only reachable spine items in N of M.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Fri, 02 Oct 2026 01:37:25 +0100
+
 readomatic (1.2.7-1) unstable; urgency=medium
 
   * Skip only real cover names in the spine.
