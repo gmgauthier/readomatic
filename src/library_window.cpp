@@ -1058,10 +1058,12 @@ void LibraryWindow::on_transfer()
   cancellable_ = Gio::Cancellable::create();
   set_busy(true);
   set_status(progress_text_);
-  copy_thread_ = std::thread([this]() { run_copy(); });
+  // Copied on this thread so the transfer does not read settings_.books while the UI writes it.
+  const Settings transfer_books = books_for_transfer(settings_);
+  copy_thread_ = std::thread([this, transfer_books]() { run_copy(transfer_books); });
 }
 
-void LibraryWindow::run_copy()
+void LibraryWindow::run_copy(const Settings& books)
 {
   int ok = 0;
   int skipped = 0;
@@ -1104,11 +1106,11 @@ void LibraryWindow::run_copy()
 
     const std::string src_path = src->get_path();
     const std::string dest_path = dest->get_path();
-    const LastRead src_pos = resolve_lastread(src_path, job_src_is_library_ ? &settings_ : nullptr,
+    const LastRead src_pos = resolve_lastread(src_path, job_src_is_library_ ? &books : nullptr,
                                               job_src_is_library_ ? std::string() : job_src_root_);
     if (dest->query_exists(cancellable_)) {
       const LastRead dest_pos =
-          resolve_lastread(dest_path, job_src_is_library_ ? nullptr : &settings_,
+          resolve_lastread(dest_path, job_src_is_library_ ? nullptr : &books,
                            job_src_is_library_ ? job_dest_root_ : std::string());
       if (same_last_page(src_pos, dest_pos)) {
         ++skipped;

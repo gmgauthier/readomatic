@@ -186,4 +186,11 @@ LastRead resolve_lastread(const std::string& book_path, const Settings* settings
   return {};
 }
 
+Settings books_for_transfer(const Settings& live)
+{
+  Settings snap;
+  snap.books = live.books;
+  return snap;
+}
+
 }  // namespace readomatic

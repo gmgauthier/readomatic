@@ -27,5 +27,6 @@ LastRead lastread_from_settings(const Settings& settings, const std::string& boo
 LastRead lastread_from_pocketbook(const std::string& device_root, const std::string& book_path);
 LastRead resolve_lastread(const std::string& book_path, const Settings* settings,
                           const std::string& device_root);
+Settings books_for_transfer(const Settings& live);
 
 }  // namespace readomatic

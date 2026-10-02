@@ -38,7 +38,7 @@ class LibraryWindow : public Gtk::Window {
   void on_tag();
   void on_transfer();
   void on_close();
-  void run_copy();
+  void run_copy(const Settings& books);
   void on_copy_progress();
   void on_copy_done();
   void stop_copy();
