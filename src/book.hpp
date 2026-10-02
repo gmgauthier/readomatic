@@ -31,7 +31,7 @@ class Book {
   struct SearchHit {
     std::string href;
     std::string excerpt;
-    int occurrence = 0;  // nth match of the query in this document
+    int occurrence = 0;  // nth match in this document; a paragraph break splits a phrase
   };
 
   Book() = default;

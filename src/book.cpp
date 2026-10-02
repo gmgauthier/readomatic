@@ -226,6 +226,66 @@ void collect_plain(xmlNode* n, std::string& out)
   }
 }
 
+bool search_break_tag(const std::string& name)
+{
+  return name == "p" || name == "div" || name == "blockquote" || name == "li" || name == "tr" ||
+         name == "h1" || name == "h2" || name == "h3" || name == "h4" || name == "h5" ||
+         name == "h6" || name == "pre";
+}
+
+void append_search_break(std::string& out)
+{
+  if (!out.empty() && out.back() != '\n')
+    out.push_back('\n');
+}
+
+/* Paragraphs stay on their own lines. The topic pane inserts those same breaks,
+   and a find hit is counted only where that pane can highlight it. */
+void collect_search_text(xmlNode* n, std::string& out)
+{
+  for (; n; n = n->next) {
+    if (n->type == XML_TEXT_NODE || n->type == XML_CDATA_SECTION_NODE) {
+      if (n->content)
+        out += reinterpret_cast<const char*>(n->content);
+      continue;
+    }
+    if (n->type != XML_ELEMENT_NODE)
+      continue;
+    const std::string name = html_name(n);
+    if (skip_html_tag(name))
+      continue;
+    if (name == "br") {
+      append_search_break(out);
+      continue;
+    }
+    if (search_break_tag(name))
+      append_search_break(out);
+    collect_search_text(n->children, out);
+    if (search_break_tag(name) && name != "tr")
+      append_search_break(out);
+  }
+}
+
+std::string normalize_search_text(const std::string& raw)
+{
+  std::string out;
+  std::string line;
+  auto flush = [&]() {
+    if (!out.empty())
+      out.push_back('\n');
+    out += squeeze_ws(line);
+    line.clear();
+  };
+  for (char c : raw) {
+    if (c == '\n')
+      flush();
+    else
+      line.push_back(c);
+  }
+  flush();
+  return out;
+}
+
 struct Heading {
   int level = 1;
   std::string id;
@@ -1069,10 +1129,10 @@ std::vector<Book::SearchHit> Book::search(const std::string& query, int limit) c
     xmlDoc* doc = parse_xhtml_memory(xhtml);
     std::string raw;
     if (doc) {
-      collect_plain(xmlDocGetRootElement(doc), raw);
+      collect_search_text(xmlDocGetRootElement(doc), raw);
       xmlFreeDoc(doc);
     }
-    const std::string text = squeeze_ws(raw);
+    const std::string text = normalize_search_text(raw);
     const std::string hay = ascii_lower(text);
     size_t pos = 0;
     int occ = 0;
