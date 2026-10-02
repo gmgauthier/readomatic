@@ -493,6 +493,7 @@ void Book::close()
   nav_href_.clear();
   ncx_href_.clear();
   spine_index_ = 0;
+  off_spine_href_.clear();
   error_.clear();
 }
 
@@ -872,6 +873,7 @@ bool Book::set_spine_index(int i)
   if (i < 0 || i >= spine_count())
     return false;
   spine_index_ = i;
+  off_spine_href_.clear();
   return true;
 }
 
@@ -899,8 +901,32 @@ bool Book::select_href(const std::string& href)
   return false;
 }
 
+bool Book::follow_path(const std::string& path)
+{
+  if (path.empty() || extract_dir_.empty())
+    return false;
+  for (int i = 0; i < spine_count(); ++i) {
+    if (resolve(spine_href(i)) == path)
+      return set_spine_index(i);
+  }
+  if (!regular_file(path) || opf_dir_.empty())
+    return false;
+  std::error_code ec;
+  const fs::path rel = fs::relative(fs::path(path), fs::path(opf_dir_), ec);
+  if (ec || rel.empty())
+    return false;
+  for (const auto& part : rel) {
+    if (part == "..")
+      return false;
+  }
+  off_spine_href_ = rel.generic_string();
+  return !off_spine_href_.empty();
+}
+
 std::string Book::current_href() const
 {
+  if (!off_spine_href_.empty())
+    return off_spine_href_;
   return spine_href(spine_index_);
 }
 
@@ -1041,6 +1067,10 @@ bool Book::advance_spine(int delta)
 {
   if (spine_.empty() || delta == 0)
     return false;
+  if (!off_spine_href_.empty()) {
+    off_spine_href_.clear();
+    return true;
+  }
   const int step = delta > 0 ? 1 : -1;
   int n = std::abs(delta);
   int i = spine_index_;

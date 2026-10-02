@@ -156,3 +156,12 @@ readomatic_find_tests = executable(
   dependencies: [gtkmm, libarchive, libxml, libmobi],
 )
 test('find', readomatic_find_tests)
+
+readomatic_jump_tests = executable(
+  'readomatic-jump-tests',
+  'tests/test_jump.cpp',
+  'src/book.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libarchive, libxml, libmobi],
+)
+test('jump', readomatic_jump_tests)
