@@ -1,6 +1,6 @@
 # Read-O-Matic backlog
 
-Current release: **v1.2.13**. Last updated: 2026-10-02.
+Current release: **v1.2.14**. Last updated: 2026-10-02.
 
 WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3 and MOBI/AZW/AZW3. Binary `readomatic`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -25,6 +25,8 @@ None.
 - Foliate / Okular re-theme
 
 ## Shipped
+
+**v1.2.14** — Deleting a book drops its catalog tags. A new file on the same path does not inherit them.
 
 **v1.2.13** — The dark palette recolours links. A chapter opened on that palette is born light blue.
 
