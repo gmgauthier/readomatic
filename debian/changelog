@@ -1,3 +1,9 @@
+readomatic (1.2.15-1) unstable; urgency=medium
+
+  * Copy the book map before a transfer reads it.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Fri, 02 Oct 2026 07:42:36 +0100
+
 readomatic (1.2.14-1) unstable; urgency=medium
 
   * Drop a book's catalog tags when it is deleted.
