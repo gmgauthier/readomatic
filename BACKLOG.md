@@ -1,6 +1,6 @@
 # Read-O-Matic backlog
 
-Current release: **v1.2.5**. Last updated: 2026-10-02.
+Current release: **v1.2.6**. Last updated: 2026-10-02.
 
 WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3 and MOBI/AZW/AZW3. Binary `readomatic`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -25,6 +25,8 @@ None.
 - Foliate / Okular re-theme
 
 ## Shipped
+
+**v1.2.6** — A long title keeps its page numbers. The count is still the spine length.
 
 **v1.2.5** — A failed open keeps its reason. A later successful open clears that reason.
 
