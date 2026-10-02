@@ -138,3 +138,12 @@ readomatic_spine_tests = executable(
   dependencies: [gtkmm, libarchive, libxml, libmobi],
 )
 test('spine', readomatic_spine_tests)
+
+readomatic_pages_tests = executable(
+  'readomatic-pages-tests',
+  'tests/test_pages.cpp',
+  'src/book.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libarchive, libxml, libmobi],
+)
+test('pages', readomatic_pages_tests)

@@ -91,8 +91,9 @@ class Book {
   std::string resolve(const std::string& href) const;  // OPF-relative path under extract
   std::string resolve_against(const std::string& href, const std::string& base_dir) const;
   std::string resolve_content_link(const std::string& href) const;
-  std::string start_href() const;  // first readable spine item
-  bool advance_spine(int delta);   // skip cover wrappers
+  std::string start_href() const;                     // first readable spine item
+  bool advance_spine(int delta);                      // skip cover wrappers
+  void readable_span(int& number, int& total) const;  // 1-based, skips covers
   std::string href_for_id(const std::string& id) const;
   const std::vector<NavNode>& nav() const
   {
