@@ -908,6 +908,27 @@ std::string Book::load_document(const std::string& href) const
   return ss.str();
 }
 
+namespace {
+
+bool cover_basename(std::string base)
+{
+  const auto dot = base.find_last_of('.');
+  if (dot != std::string::npos)
+    base = base.substr(0, dot);
+  if (base == "cover" || base == "titlepage" || base == "wrap")
+    return true;
+  if (base.size() > 4 && base.compare(0, 4, "wrap") == 0) {
+    for (size_t i = 4; i < base.size(); ++i) {
+      if (base[i] < '0' || base[i] > '9')
+        return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+}  // namespace
+
 bool Book::skip_spine_href(const std::string& href) const
 {
   auto basename = [](std::string h) {
@@ -928,14 +949,11 @@ bool Book::skip_spine_href(const std::string& href) const
     const std::string mt = it.media_type;
     if (mt.find("xhtml") == std::string::npos && mt.find("html") == std::string::npos)
       return true;
-    const std::string b = basename(it.href);
-    if (b.find("cover") != std::string::npos || b.find("titlepage") != std::string::npos ||
-        b.find("wrap") != std::string::npos)
+    if (cover_basename(basename(it.href)))
       return true;
     const std::string html = load_document(href);
     const std::string low = ascii_lower(html);
-    if (low.find("coverpage") != std::string::npos ||
-        low.find("<title>\"cover\"") != std::string::npos)
+    if (low.find("<title>\"cover\"") != std::string::npos)
       return true;
     xmlDoc* doc = parse_xhtml_memory(html);
     std::string raw;

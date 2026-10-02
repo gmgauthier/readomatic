@@ -2,19 +2,11 @@
 
 Reviewed 2026-10-01 against the 1.2.0 sources.
 
-`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once. `open` checks that a failed open keeps its reason: not a zip, not a MOBI, a missing or unreadable container, a missing OPF, and an empty spine. A later successful open clears that reason. `status` checks that a long title, including one that contains an em dash, keeps the full `N of M` suffix.
+`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once. `open` checks that a failed open keeps its reason: not a zip, not a MOBI, a missing or unreadable container, a missing OPF, and an empty spine. A later successful open clears that reason. `status` checks that a long title, including one that contains an em dash, keeps the full `N of M` suffix. `spine` checks that `recovered`, `coverage`, `unwrapping`, `titlepage-notes`, and a chapter that mentions `coverpage` stay reachable, while `wrap0000`, `cover`, `titlepage`, and an empty document stay skipped.
 
 Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE_NODOTDOT`). The holes below are the path used after extract.
 
 ## Open
-
-### Spine skip treats "cover", "wrap", and "titlepage" as substrings
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/book.cpp:841`
-- Trigger: A real spine document named `recovered.xhtml`, `coverage.xhtml`, `unwrapping.xhtml`, or `titlepage-notes.xhtml`. Any HTML containing the literal `coverpage` is skipped the same way (`src/book.cpp:846`).
-- Outcome: `select_href`, Next/Prev, Find, Index, and `href_for_id` all use this helper. Next/Prev never lands on that chapter. Find and Index omit it. Restoring a saved position there opens the start of the book. `wrap0000.xhtml` covers are skipped on purpose. The match is wider than that.
 
 ### "N of M" counts spine slots Next cannot reach
 
@@ -81,6 +73,15 @@ Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE
 - Outcome: `resolve_lastread` is called with `&settings_` on `copy_thread_`. Highlight, bookmark, and `persist` mutate `settings_.books` on the UI thread. No mutex covers that map. The data race can crash or corrupt the in-memory bookmark and highlight map.
 
 ## Closed
+
+### Spine skip treats "cover", "wrap", and "titlepage" as substrings
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/book.cpp` `skip_spine_href`
+- Trigger: A real spine document named `recovered.xhtml`, `coverage.xhtml`, `unwrapping.xhtml`, or `titlepage-notes.xhtml`. Any HTML containing the literal `coverpage` is skipped the same way.
+- Outcome: `select_href`, Next/Prev, Find, Index, and `href_for_id` all use this helper. Next/Prev never lands on that chapter. Find and Index omit it. Restoring a saved position there opens the start of the book. `wrap0000.xhtml` covers are skipped on purpose. The match is wider than that.
+- Fixed in v1.2.7: A spine name is skipped when its stem is `cover`, `titlepage`, or `wrap` plus digits, as in `wrap0000`. `recovered`, `coverage`, `unwrapping`, `titlepage-notes`, and `wrapper-notes` stay. A chapter that merely contains the word `coverpage` stays. An empty document is still skipped. The status count still includes the skipped slots.
 
 ### The status buffer chops the page numbers off a long title
 
