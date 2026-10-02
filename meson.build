@@ -165,3 +165,11 @@ readomatic_jump_tests = executable(
   dependencies: [gtkmm, libarchive, libxml, libmobi],
 )
 test('jump', readomatic_jump_tests)
+
+readomatic_colour_tests = executable(
+  'readomatic-colour-tests',
+  'tests/test_colour.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('colour', readomatic_colour_tests)

@@ -2,19 +2,11 @@
 
 Reviewed 2026-10-01 against the 1.2.0 sources.
 
-`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, sidecar save/load, and that a PocketBook CFI stored with `cpage` 0 reloads as a position, from the sidecar and from `explorer-3.db`. It checks that two unread books are not the same last page, while two saved places that match still are. `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once. `open` checks that a failed open keeps its reason: not a zip, not a MOBI, a missing or unreadable container, a missing OPF, and an empty spine. A later successful open clears that reason. `status` checks that a long title, including one that contains an em dash, keeps the full `N of M` suffix. `spine` checks that `recovered`, `coverage`, `unwrapping`, `titlepage-notes`, and a chapter that mentions `coverpage` stay reachable, while `wrap0000`, `cover`, `titlepage`, and an empty document stay skipped. `pages` checks that a leading `wrap0000` is left out of `N of M`, so the first readable chapter is `1 of 2`. `find` checks that a phrase split by a paragraph or a `br` is not a hit, and that the next real hit in that chapter is occurrence 0. `jump` checks that a file which is not in the spine becomes the current topic, that Next and Prev return to the chapter that was open, and that Back's history entry is that chapter.
+`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, sidecar save/load, and that a PocketBook CFI stored with `cpage` 0 reloads as a position, from the sidecar and from `explorer-3.db`. It checks that two unread books are not the same last page, while two saved places that match still are. `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once. `open` checks that a failed open keeps its reason: not a zip, not a MOBI, a missing or unreadable container, a missing OPF, and an empty spine. A later successful open clears that reason. `status` checks that a long title, including one that contains an em dash, keeps the full `N of M` suffix. `spine` checks that `recovered`, `coverage`, `unwrapping`, `titlepage-notes`, and a chapter that mentions `coverpage` stay reachable, while `wrap0000`, `cover`, `titlepage`, and an empty document stay skipped. `pages` checks that a leading `wrap0000` is left out of `N of M`, so the first readable chapter is `1 of 2`. `find` checks that a phrase split by a paragraph or a `br` is not a hit, and that the next real hit in that chapter is occurrence 0. `jump` checks that a file which is not in the spine becomes the current topic, that Next and Prev return to the chapter that was open, and that Back's history entry is that chapter. `colour` checks that palette 2 uses the light link ink and every other palette keeps the dark blue.
 
 Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE_NODOTDOT`). The holes below are the path used after extract.
 
 ## Open
-
-### The dark palette does not recolour links
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/topic_view.cpp:422`
-- Trigger: Options → Appearance → "Light gray on near-black", then show a chapter that has links.
-- Outcome: Each `<a>` gets a new tag with foreground `#0B3A96`. `apply_appearance` recolors only the shared `link` tag. The per-link tags are higher priority, so they win. Links stay dark blue on `#111111`.
 
 ### Delete does not drop catalog tags
 
@@ -33,6 +25,15 @@ Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE
 - Outcome: `resolve_lastread` is called with `&settings_` on `copy_thread_`. Highlight, bookmark, and `persist` mutate `settings_.books` on the UI thread. No mutex covers that map. The data race can crash or corrupt the in-memory bookmark and highlight map.
 
 ## Closed
+
+### The dark palette does not recolour links
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/topic_view.cpp` `apply_appearance`, `walk`
+- Trigger: Options → Appearance → "Light gray on near-black", then show a chapter that has links.
+- Outcome: Each `<a>` gets a new tag with foreground `#0B3A96`. `apply_appearance` recolors only the shared `link` tag. The per-link tags are higher priority, so they win. Links stay dark blue on `#111111`.
+- Fixed in v1.2.13: Palette 2 paints links `#8CB4E8`, including a chapter opened while that palette is already selected. Every other palette keeps `#0B3A96`. Changing palette recolours the links already on the page.
 
 ### A jump to a non-spine file leaves navigation on the old topic
 

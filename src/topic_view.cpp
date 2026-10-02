@@ -128,9 +128,10 @@ void TopicView::ensure_tags()
 
 void TopicView::apply_appearance(const std::string& family, int size_pt, int weight, int palette)
 {
+  palette_ = palette;
   const char* bg = "#F7F5EF";
   const char* fg = "#1A1A1A";
-  const char* link = "#0B3A96";
+  const char* link = link_foreground(palette);
   const char* hit_bg = "#404040";
   const char* hit_fg = "#FFFFFF";
   const char* sel_bg = "#3D6AA8";
@@ -141,7 +142,6 @@ void TopicView::apply_appearance(const std::string& family, int size_pt, int wei
   } else if (palette == 2) {
     bg = "#111111";
     fg = "#D8D8D8";
-    link = "#8CB4E8";
     hit_bg = "#C8C8C8";
     hit_fg = "#111111";
     sel_bg = "#8CB4E8";
@@ -206,6 +206,10 @@ void TopicView::apply_appearance(const std::string& family, int size_pt, int wei
   auto table = buf_->get_tag_table();
   if (auto t = table->lookup("link"))
     t->property_foreground() = link;
+  for (const auto& entry : link_hrefs_) {
+    if (entry.first)
+      entry.first->property_foreground() = link;
+  }
   if (auto t = table->lookup("find-hit")) {
     t->property_background() = hit_bg;
     t->property_foreground() = hit_fg;
@@ -448,7 +452,7 @@ void TopicView::walk(xmlNode* node, const std::string& base_dir, const std::stri
       auto end = buf_->end();
       auto unique = Gtk::TextBuffer::Tag::create();
       unique->property_underline() = Pango::UNDERLINE_SINGLE;
-      unique->property_foreground() = "#0B3A96";
+      unique->property_foreground() = link_foreground(palette_);
       buf_->get_tag_table()->add(unique);
       buf_->apply_tag(unique, start, end);
       link_hrefs_[unique] = href;
