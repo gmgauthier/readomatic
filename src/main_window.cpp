@@ -624,10 +624,7 @@ void MainWindow::show_current(const std::string& fragment)
   if (!suppress_history_)
     history_.push(href, fragment);
   highlight_contents();
-  char buf[160];
-  std::snprintf(buf, sizeof(buf), "%s — %d of %d", book_.title().c_str(), book_.spine_index() + 1,
-                book_.spine_count());
-  set_status(buf);
+  set_status(topic_status_text(book_.title(), book_.spine_index(), book_.spine_count()));
 }
 
 void MainWindow::fill_contents()
