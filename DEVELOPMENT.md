@@ -121,7 +121,7 @@ std::string load_document(const std::string& href); // uncompressed XHTML
 
 Temp extract dir under `$XDG_CACHE_HOME/readomatic/books/<hash>/` or stream via libarchive without a full unpack if that stays simple. Prefer **extract once on open**, delete on close / process exit. Images in the topic pane load from that tree.
 
-OPF: package identity, manifest, spine, optional `nav` (EPUB3) or NCX (EPUB2). Resolve hrefs against the OPF directory inside the zip.
+OPF: package identity, manifest, spine, optional `nav` (EPUB3) or NCX (EPUB2). Spine and manifest hrefs resolve against the OPF directory. A content link resolves against the current document's directory, then the OPF directory if that file is absent. Both are percent-decoded once and have to stay inside the extracted book.
 
 ### `TopicView`
 
@@ -136,7 +136,7 @@ sigc::signal<void, Glib::ustring>& signal_jump(); // href
 Map a **closed subset**: `p`, `div`, `br`, `h1`–`h6`, `em`/`i`, `strong`/`b`, `a href`, `img src`, `ul`/`ol`/`li`, `blockquote`, `pre`/`code`. Drop `script`, `style`, `svg`, `iframe`. Unknown tags: keep children.
 
 - Headings: larger/bold tags
-- `a`: underline + navy; button-release emits `signal_jump` with resolved href
+- `a`: underline + navy; button-release emits `signal_jump` with the href. The jump resolves it from the current document.
 - `img`: `Gdk::Pixbuf` inserted if the file stays under the extracted book; otherwise skip
 - Fragments (`href#id`): scroll to a mark named `id` if present
 

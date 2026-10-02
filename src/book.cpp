@@ -344,6 +344,46 @@ bool inside_directory(const fs::path& root, const fs::path& candidate)
   return full != candidate.end();
 }
 
+int hex_value(char c)
+{
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  if (c >= 'a' && c <= 'f')
+    return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F')
+    return c - 'A' + 10;
+  return -1;
+}
+
+/* One pass. '+' stays '+'. '%2520' stays '%20'. */
+std::string percent_decode(const std::string& in)
+{
+  std::string out;
+  out.reserve(in.size());
+  for (size_t i = 0; i < in.size(); ++i) {
+    if (in[i] == '%' && i + 2 < in.size()) {
+      const int hi = hex_value(in[i + 1]);
+      const int lo = hex_value(in[i + 2]);
+      if (hi >= 0 && lo >= 0) {
+        out.push_back(static_cast<char>((hi << 4) | lo));
+        i += 2;
+        continue;
+      }
+    }
+    out.push_back(in[i]);
+  }
+  return out;
+}
+
+bool regular_file(const std::string& path)
+{
+  if (path.empty())
+    return false;
+  std::error_code ec;
+  const fs::file_status st = fs::symlink_status(fs::path(path), ec);
+  return !ec && fs::is_regular_file(st);
+}
+
 bool copy_archive_data(archive* src, archive* dst)
 {
   const void* buf = nullptr;
@@ -801,17 +841,19 @@ std::string Book::current_href() const
   return spine_href(spine_index_);
 }
 
-std::string Book::resolve(const std::string& href) const
+std::string Book::resolve_against(const std::string& href, const std::string& base_dir) const
 {
   std::string h = href;
   const auto hash = h.find('#');
   if (hash != std::string::npos)
     h = h.substr(0, hash);
-  if (h.empty() || extract_dir_.empty())
+  h = percent_decode(h);
+  if (h.empty() || h.find('\0') != std::string::npos || extract_dir_.empty())
     return {};
+  const std::string base = base_dir.empty() ? opf_dir_ : base_dir;
   const fs::path joined = fs::path(h).is_absolute()
                               ? fs::path(extract_dir_) / h.substr(h[0] == '/' ? 1 : 0)
-                              : fs::path(opf_dir_) / h;
+                              : fs::path(base) / h;
   std::error_code ec;
   const fs::path root = fs::weakly_canonical(fs::path(extract_dir_), ec);
   if (ec)
@@ -821,6 +863,29 @@ std::string Book::resolve(const std::string& href) const
   if (ec || !inside_directory(root, full))
     return {};
   return full.string();
+}
+
+std::string Book::resolve(const std::string& href) const
+{
+  return resolve_against(href, opf_dir_);
+}
+
+std::string Book::resolve_content_link(const std::string& href) const
+{
+  std::string base = opf_dir_;
+  const std::string current = resolve(current_href());
+  if (!current.empty()) {
+    const auto slash = current.find_last_of('/');
+    if (slash != std::string::npos)
+      base = current.substr(0, slash);
+  }
+  const std::string beside = resolve_against(href, base);
+  if (regular_file(beside))
+    return beside;
+  const std::string packaged = resolve(href);
+  if (regular_file(packaged))
+    return packaged;
+  return {};
 }
 
 std::string Book::load_document(const std::string& href) const
