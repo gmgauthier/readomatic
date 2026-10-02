@@ -147,3 +147,12 @@ readomatic_pages_tests = executable(
   dependencies: [gtkmm, libarchive, libxml, libmobi],
 )
 test('pages', readomatic_pages_tests)
+
+readomatic_find_tests = executable(
+  'readomatic-find-tests',
+  'tests/test_find.cpp',
+  'src/book.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libarchive, libxml, libmobi],
+)
+test('find', readomatic_find_tests)
