@@ -1,3 +1,9 @@
+readomatic (1.2.5-1) unstable; urgency=medium
+
+  * Keep the reason when a book fails to open.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Fri, 02 Oct 2026 01:26:35 +0100
+
 readomatic (1.2.4-1) unstable; urgency=medium
 
   * Resolve a content link from its chapter and decode it once.

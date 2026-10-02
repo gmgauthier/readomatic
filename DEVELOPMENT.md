@@ -9,7 +9,7 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-10-02)
 
-**v1.2.4.** A content link resolves from its chapter and is percent-decoded once. A topic image stays inside the extracted book. A document href stays inside the extracted book. Bookmarks dialog (Jump / Delete) and restore scroll. Highlighter from 1.1.0. Headless test suite and BUG-BACKLOG.md. Tags through `v1.2.4`. Samples stay git-only. Later: Contents tree lines.
+**v1.2.5.** A failed open keeps its reason. A content link resolves from its chapter and is percent-decoded once. A topic image stays inside the extracted book. A document href stays inside the extracted book. Bookmarks dialog (Jump / Delete) and restore scroll. Highlighter from 1.1.0. Headless test suite and BUG-BACKLOG.md. Tags through `v1.2.5`. Samples stay git-only. Later: Contents tree lines.
 
 ## 1. Locked decisions
 
