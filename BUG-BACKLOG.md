@@ -2,19 +2,11 @@
 
 Reviewed 2026-10-01 against the 1.2.0 sources.
 
-`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once. `open` checks that a failed open keeps its reason: not a zip, not a MOBI, a missing or unreadable container, a missing OPF, and an empty spine. A later successful open clears that reason. `status` checks that a long title, including one that contains an em dash, keeps the full `N of M` suffix. `spine` checks that `recovered`, `coverage`, `unwrapping`, `titlepage-notes`, and a chapter that mentions `coverpage` stay reachable, while `wrap0000`, `cover`, `titlepage`, and an empty document stay skipped. `pages` checks that a leading `wrap0000` is left out of `N of M`, so the first readable chapter is `1 of 2`.
+`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, sidecar save/load, and that a PocketBook CFI stored with `cpage` 0 reloads as a position, from the sidecar and from `explorer-3.db`. It does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once. `open` checks that a failed open keeps its reason: not a zip, not a MOBI, a missing or unreadable container, a missing OPF, and an empty spine. A later successful open clears that reason. `status` checks that a long title, including one that contains an em dash, keeps the full `N of M` suffix. `spine` checks that `recovered`, `coverage`, `unwrapping`, `titlepage-notes`, and a chapter that mentions `coverpage` stay reachable, while `wrap0000`, `cover`, `titlepage`, and an empty document stay skipped. `pages` checks that a leading `wrap0000` is left out of `N of M`, so the first readable chapter is `1 of 2`.
 
 Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE_NODOTDOT`). The holes below are the path used after extract.
 
 ## Open
-
-### A PocketBook position with cpage 0 is dropped on reload
-
-- Severity: data-loss
-- Confidence: high
-- Where: `src/lastread.cpp:41`, `src/lastread.cpp:81`
-- Trigger: A sidecar (or catalog row) with `pbr` set and `cpage` 0. The stock reader rewrites a CFI in that shape.
-- Outcome: `canonical_lastread` returns empty while `present` is still false, so the `pbr` cannot make the record present. `load_lastread` then sets `present` only from a non-empty canonical string, a non-empty href, or `cpage > 0`. The device position is treated as unread.
 
 ### Transfer treats "no position" as "same last page"
 
@@ -65,6 +57,15 @@ Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE
 - Outcome: `resolve_lastread` is called with `&settings_` on `copy_thread_`. Highlight, bookmark, and `persist` mutate `settings_.books` on the UI thread. No mutex covers that map. The data race can crash or corrupt the in-memory bookmark and highlight map.
 
 ## Closed
+
+### A PocketBook position with cpage 0 is dropped on reload
+
+- Severity: data-loss
+- Confidence: high
+- Where: `src/lastread.cpp` `canonical_lastread`, `load_lastread`
+- Trigger: A sidecar (or catalog row) with `pbr` set and `cpage` 0. The stock reader rewrites a CFI in that shape.
+- Outcome: `canonical_lastread` returns empty while `present` is still false, so the `pbr` cannot make the record present. `load_lastread` then sets `present` only from a non-empty canonical string, a non-empty href, or `cpage > 0`. The device position is treated as unread.
+- Fixed in v1.2.9: A non-empty CFI is a position before `present` is set, and reload keeps it when `cpage` is 0. An empty sidecar, and a device row with no position and `cpage` 0, stay unread.
 
 ### "N of M" counts spine slots Next cannot reach
 

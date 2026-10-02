@@ -40,10 +40,12 @@ std::string lastread_path(const std::string& book_path)
 
 std::string canonical_lastread(const LastRead& pos)
 {
-  if (!pos.present)
-    return {};
+  // A CFI is a place on its own. present is still false while load_lastread
+  // is deciding, and the stock reader stores that CFI with cpage 0.
   if (!pos.pbr.empty())
     return pos.pbr;
+  if (!pos.present)
+    return {};
   std::ostringstream os;
   os << pos.href << '|' << pos.fragment << '|' << pos.scroll;
   if (pos.cpage > 0)
@@ -78,7 +80,7 @@ LastRead load_lastread(const std::string& book_path)
       pos.npage = kf.get_integer("position", "npage");
   } catch (const Glib::Error&) {
   }
-  pos.present = !canonical_lastread(pos).empty() || !pos.href.empty() || pos.cpage > 0;
+  pos.present = !pos.pbr.empty() || !pos.href.empty() || pos.cpage > 0;
   return pos;
 }
 
