@@ -85,6 +85,11 @@ class Book {
   std::string spine_href(int i) const;
   bool set_spine_index(int i);
   bool select_href(const std::string& href);
+  bool follow_path(const std::string& path);  // spine item, or a file beside the chapter
+  bool off_spine() const
+  {
+    return !off_spine_href_.empty();
+  }
   std::string current_href() const;
 
   std::string load_document(const std::string& href) const;
@@ -125,12 +130,18 @@ class Book {
   std::string nav_href_;
   std::string ncx_href_;
   int spine_index_ = 0;
+  std::string off_spine_href_;
 };
 
 /* page_index is zero-based, matching Book::spine_index(). The page numbers are never clipped. */
 inline std::string topic_status_text(const std::string& title, int page_index, int page_count)
 {
   return title + " — " + std::to_string(page_index + 1) + " of " + std::to_string(page_count);
+}
+
+inline std::string off_spine_status(const std::string& title, const std::string& href)
+{
+  return title + " — " + href;
 }
 
 }  // namespace readomatic

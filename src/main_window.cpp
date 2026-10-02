@@ -8,11 +8,9 @@
 
 #include <cmath>
 #include <cstdio>
-#include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <sstream>
 
 #include <pango/pangocairo.h>
 
@@ -624,6 +622,10 @@ void MainWindow::show_current(const std::string& fragment)
   if (!suppress_history_)
     history_.push(href, fragment);
   highlight_contents();
+  if (book_.off_spine()) {
+    set_status(off_spine_status(book_.title(), book_.current_href()));
+    return;
+  }
   int number = 0;
   int total = 0;
   book_.readable_span(number, total);
@@ -949,26 +951,11 @@ void MainWindow::on_jump(const Glib::ustring& href)
     return;
   }
   const std::string path = book_.resolve_content_link(file);
-  if (path.empty()) {
+  if (path.empty() || !book_.follow_path(path)) {
     set_status("Jump not in this book.");
     return;
   }
-  for (int i = 0; i < book_.spine_count(); ++i) {
-    if (book_.resolve(book_.spine_href(i)) == path) {
-      book_.set_spine_index(i);
-      show_current(frag);
-      return;
-    }
-  }
-  const auto slash = path.find_last_of('/');
-  const std::string dir = slash == std::string::npos ? book_.extract_dir() : path.substr(0, slash);
-  std::ifstream in(path);
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  topic_view_.load_xhtml(ss.str(), dir, book_.extract_dir());
-  if (!frag.empty())
-    topic_view_.scroll_to_id(frag);
-  set_status(book_.title() + " — (jump)");
+  show_current(frag);
 }
 
 void MainWindow::on_close_book()
