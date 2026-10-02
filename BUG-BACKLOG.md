@@ -2,19 +2,11 @@
 
 Reviewed 2026-10-01 against the 1.2.0 sources.
 
-`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load.
+`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves.
 
 Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE_NODOTDOT`). The holes below are the path used after extract.
 
 ## Open
-
-### Topic images are not confined to the book
-
-- Severity: security
-- Confidence: high
-- Where: `src/topic_view.cpp:330`
-- Trigger: An XHTML `<img src="/home/.../secret.png">` or `src="../../../../secret.png"` while the topic is shown.
-- Outcome: A leading `/` is returned unchanged. Any other path is joined to the document directory with no check that the result stays under `extract_dir_`. Gdk loads and displays that image. `Book::resolve` does confine a leading `/`. This path does not.
 
 ### Content links are resolved against the OPF directory and never decoded
 
@@ -113,6 +105,15 @@ Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE
 - Outcome: `resolve_lastread` is called with `&settings_` on `copy_thread_`. Highlight, bookmark, and `persist` mutate `settings_.books` on the UI thread. No mutex covers that map. The data race can crash or corrupt the in-memory bookmark and highlight map.
 
 ## Closed
+
+### Topic images are not confined to the book
+
+- Severity: security
+- Confidence: high
+- Where: `src/topic_view.cpp` `topic_image_path`
+- Trigger: An XHTML `<img src="/home/.../secret.png">` or `src="../../../../secret.png"` while the topic is shown.
+- Outcome: A leading `/` is returned unchanged. Any other path is joined to the document directory with no check that the result stays under `extract_dir_`. Gdk loads and displays that image. `Book::resolve` does confine a leading `/`. This path does not.
+- Fixed in v1.2.3: An image path has to stay under the extracted book, after symlinks are followed. A leading slash is rooted there. A link to a file outside that directory is not loaded. An image beside the chapter still loads.
 
 ### A document href can be read from outside the book cache
 

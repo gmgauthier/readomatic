@@ -92,3 +92,13 @@ readomatic_confine_tests = executable(
   dependencies: [gtkmm, libarchive, libxml, libmobi],
 )
 test('confine', readomatic_confine_tests)
+
+readomatic_image_tests = executable(
+  'readomatic-image-tests',
+  'tests/test_image.cpp',
+  'src/topic_view.cpp',
+  'src/settings.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm, libxml],
+)
+test('image', readomatic_image_tests)

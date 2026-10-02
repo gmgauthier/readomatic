@@ -17,7 +17,8 @@ class TopicView : public Gtk::TextView {
  public:
   TopicView();
 
-  void load_xhtml(const std::string& xhtml, const std::string& base_dir);
+  void load_xhtml(const std::string& xhtml, const std::string& base_dir,
+                  const std::string& book_root);
   void clear_topic();
   bool scroll_to_id(const std::string& id);
   bool select_match(const Glib::ustring& query, int occurrence);
@@ -40,10 +41,12 @@ class TopicView : public Gtk::TextView {
 
  private:
   void ensure_tags();
-  void walk(xmlNode* node, const std::string& base_dir, int list_depth);
+  void walk(xmlNode* node, const std::string& base_dir, const std::string& book_root,
+            int list_depth);
   void insert_text(const std::string& text, const std::vector<Glib::ustring>& tag_names);
   void insert_break();
-  std::string resolve_src(const std::string& src, const std::string& base_dir) const;
+  std::string resolve_src(const std::string& src, const std::string& base_dir,
+                          const std::string& book_root) const;
 
   Glib::RefPtr<Gtk::TextBuffer> buf_;
   Glib::RefPtr<Gtk::CssProvider> chrome_css_;
@@ -51,5 +54,9 @@ class TopicView : public Gtk::TextView {
   std::map<Glib::RefPtr<Gtk::TextTag>, std::string> link_hrefs_;
   std::vector<Glib::ustring> tag_stack_;
 };
+
+/* Image path under the extracted book. Empty when the file would sit outside it. */
+std::string topic_image_path(const std::string& src, const std::string& base_dir,
+                             const std::string& book_root);
 
 }  // namespace readomatic

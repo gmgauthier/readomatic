@@ -8,10 +8,24 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
+#include <filesystem>
 #include <functional>
 
 namespace readomatic {
 namespace {
+
+namespace fs = std::filesystem;
+
+bool inside_directory(const fs::path& root, const fs::path& candidate)
+{
+  auto base = root.begin();
+  auto full = candidate.begin();
+  for (; base != root.end(); ++base, ++full) {
+    if (full == candidate.end() || *base != *full)
+      return false;
+  }
+  return full != candidate.end();
+}
 
 std::string lower(std::string s)
 {
@@ -319,22 +333,37 @@ void TopicView::insert_break()
   buf_->insert(end, "\n");
 }
 
-std::string TopicView::resolve_src(const std::string& src, const std::string& base_dir) const
+std::string topic_image_path(const std::string& src, const std::string& base_dir,
+                             const std::string& book_root)
 {
   std::string s = src;
   const auto hash = s.find('#');
   if (hash != std::string::npos)
     s = s.substr(0, hash);
-  if (s.empty())
+  if (s.empty() || book_root.empty())
     return {};
-  if (s[0] == '/')
-    return s;
-  if (base_dir.empty())
-    return s;
-  return Glib::build_filename(base_dir, s);
+  const fs::path joined = s[0] == '/'        ? fs::path(book_root) / s.substr(1)
+                          : base_dir.empty() ? fs::path(book_root) / s
+                                             : fs::path(base_dir) / s;
+  std::error_code ec;
+  const fs::path root = fs::weakly_canonical(fs::path(book_root), ec);
+  if (ec)
+    return {};
+  ec.clear();
+  const fs::path full = fs::weakly_canonical(joined.lexically_normal(), ec);
+  if (ec || !inside_directory(root, full))
+    return {};
+  return full.string();
 }
 
-void TopicView::walk(xmlNode* node, const std::string& base_dir, int list_depth)
+std::string TopicView::resolve_src(const std::string& src, const std::string& base_dir,
+                                   const std::string& book_root) const
+{
+  return topic_image_path(src, base_dir, book_root);
+}
+
+void TopicView::walk(xmlNode* node, const std::string& base_dir, const std::string& book_root,
+                     int list_depth)
 {
   for (xmlNode* n = node; n; n = n->next) {
     if (n->type == XML_TEXT_NODE || n->type == XML_CDATA_SECTION_NODE) {
@@ -357,7 +386,7 @@ void TopicView::walk(xmlNode* node, const std::string& base_dir, int list_depth)
       continue;
     }
     if (name == "img") {
-      const std::string path = resolve_src(xml_prop(n, "src"), base_dir);
+      const std::string path = resolve_src(xml_prop(n, "src"), base_dir, book_root);
       if (!path.empty()) {
         try {
           auto pix = Gdk::Pixbuf::create_from_file(path);
@@ -413,7 +442,7 @@ void TopicView::walk(xmlNode* node, const std::string& base_dir, int list_depth)
       tag_stack_.push_back(pushed);
     const int child_list = (name == "ul" || name == "ol") ? list_depth + 1 : list_depth;
     const auto start_off = buf_->get_char_count();
-    walk(n->children, base_dir, child_list);
+    walk(n->children, base_dir, book_root, child_list);
     if (name == "a" && !href.empty()) {
       auto start = buf_->get_iter_at_offset(start_off);
       auto end = buf_->end();
@@ -434,7 +463,8 @@ void TopicView::walk(xmlNode* node, const std::string& base_dir, int list_depth)
   }
 }
 
-void TopicView::load_xhtml(const std::string& xhtml, const std::string& base_dir)
+void TopicView::load_xhtml(const std::string& xhtml, const std::string& base_dir,
+                           const std::string& book_root)
 {
   clear_topic();
   tag_stack_.clear();
@@ -465,7 +495,7 @@ void TopicView::load_xhtml(const std::string& xhtml, const std::string& base_dir
   };
   if (xmlNode* b = find_body(root))
     body = b;
-  walk(body ? body->children : root, base_dir, 0);
+  walk(body ? body->children : root, base_dir, book_root, 0);
   xmlFreeDoc(doc);
 }
 

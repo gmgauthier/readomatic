@@ -616,7 +616,7 @@ void MainWindow::show_current(const std::string& fragment)
   const std::string base = book_.resolve(href);
   const auto slash = base.find_last_of('/');
   const std::string dir = slash == std::string::npos ? book_.extract_dir() : base.substr(0, slash);
-  topic_view_.load_xhtml(xhtml, dir);
+  topic_view_.load_xhtml(xhtml, dir, book_.extract_dir());
   paint_highlights();
   if (!fragment.empty())
     topic_view_.scroll_to_id(fragment);
@@ -959,7 +959,7 @@ void MainWindow::on_jump(const Glib::ustring& href)
   std::ifstream in(path);
   std::ostringstream ss;
   ss << in.rdbuf();
-  topic_view_.load_xhtml(ss.str(), dir);
+  topic_view_.load_xhtml(ss.str(), dir, book_.extract_dir());
   if (!frag.empty())
     topic_view_.scroll_to_id(frag);
   set_status(book_.title() + " — (jump)");
