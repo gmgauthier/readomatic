@@ -128,7 +128,8 @@ OPF: package identity, manifest, spine, optional `nav` (EPUB3) or NCX (EPUB2). R
 Wraps the existing `Gtk::TextView`.
 
 ```cpp
-void load_xhtml(const std::string& xhtml, const std::string& base_dir);
+void load_xhtml(const std::string& xhtml, const std::string& base_dir,
+                const std::string& book_root);
 sigc::signal<void, Glib::ustring>& signal_jump(); // href
 ```
 
@@ -136,7 +137,7 @@ Map a **closed subset**: `p`, `div`, `br`, `h1`–`h6`, `em`/`i`, `strong`/`b`, 
 
 - Headings: larger/bold tags
 - `a`: underline + navy; button-release emits `signal_jump` with resolved href
-- `img`: `Gdk::Pixbuf` inserted if the file exists under `base_dir`; otherwise skip
+- `img`: `Gdk::Pixbuf` inserted if the file stays under the extracted book; otherwise skip
 - Fragments (`href#id`): scroll to a mark named `id` if present
 
 If a real book is soup after this mapping, **stop M1 and revisit WebKitGTK** (no chrome, our CSS, `decide-policy` to trap links). Do not sneak a location bar in.
