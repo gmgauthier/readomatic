@@ -170,6 +170,13 @@ void LibraryCatalog::set_tags(const std::string& rel, const std::vector<std::str
     tags_by_rel[rel] = tags;
 }
 
+void LibraryCatalog::forget(const std::string& rel)
+{
+  if (rel.empty())
+    return;
+  tags_by_rel.erase(rel);
+}
+
 std::vector<CatalogBook> scan_library(const std::string& library_dir, const LibraryCatalog& cat)
 {
   std::vector<CatalogBook> out;

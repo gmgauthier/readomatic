@@ -173,3 +173,12 @@ readomatic_colour_tests = executable(
   dependencies: [gtkmm, libxml],
 )
 test('colour', readomatic_colour_tests)
+
+readomatic_catalog_tests = executable(
+  'readomatic-catalog-tests',
+  'tests/test_catalog.cpp',
+  'src/library_catalog.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm],
+)
+test('catalog', readomatic_catalog_tests)
