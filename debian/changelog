@@ -1,3 +1,9 @@
+readomatic (1.2.12-1) unstable; urgency=medium
+
+  * Open a non-spine file as the current topic.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Fri, 02 Oct 2026 07:03:02 +0100
+
 readomatic (1.2.11-1) unstable; urgency=medium
 
   * Count a find hit only inside one paragraph.
