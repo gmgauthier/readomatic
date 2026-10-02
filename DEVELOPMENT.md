@@ -9,7 +9,7 @@ Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.
 
 ## Status (2026-10-02)
 
-**v1.2.12.** A file outside the spine becomes the current topic. A find hit stays inside one paragraph. Two books with no last page are still copied. A PocketBook CFI with cpage 0 reloads as a position. N of M counts chapters Next can reach. Spine names are skipped only for cover, titlepage, and wrap plus digits. A long title keeps its page numbers. A failed open keeps its reason. A content link resolves from its chapter and is percent-decoded once. A topic image stays inside the extracted book. A document href stays inside the extracted book. Bookmarks dialog (Jump / Delete) and restore scroll. Highlighter from 1.1.0. Headless test suite and BUG-BACKLOG.md. Tags through `v1.2.12`. Samples stay git-only. Later: Contents tree lines.
+**v1.2.13.** The dark palette recolours links. A file outside the spine becomes the current topic. A find hit stays inside one paragraph. Two books with no last page are still copied. A PocketBook CFI with cpage 0 reloads as a position. N of M counts chapters Next can reach. Spine names are skipped only for cover, titlepage, and wrap plus digits. A long title keeps its page numbers. A failed open keeps its reason. A content link resolves from its chapter and is percent-decoded once. A topic image stays inside the extracted book. A document href stays inside the extracted book. Bookmarks dialog (Jump / Delete) and restore scroll. Highlighter from 1.1.0. Headless test suite and BUG-BACKLOG.md. Tags through `v1.2.13`. Samples stay git-only. Later: Contents tree lines.
 
 ## 1. Locked decisions
 

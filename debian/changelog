@@ -1,3 +1,9 @@
+readomatic (1.2.13-1) unstable; urgency=medium
+
+  * Paint links with the palette that is showing.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Fri, 02 Oct 2026 07:33:55 +0100
+
 readomatic (1.2.12-1) unstable; urgency=medium
 
   * Open a non-spine file as the current topic.
