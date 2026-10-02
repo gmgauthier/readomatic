@@ -182,3 +182,12 @@ readomatic_catalog_tests = executable(
   dependencies: [gtkmm],
 )
 test('catalog', readomatic_catalog_tests)
+
+readomatic_copy_tests = executable(
+  'readomatic-copy-tests',
+  'tests/test_copy.cpp',
+  'src/lastread.cpp',
+  include_directories: inc,
+  dependencies: [gtkmm],
+)
+test('copy', readomatic_copy_tests)
