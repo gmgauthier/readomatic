@@ -1,3 +1,9 @@
+readomatic (1.2.10-1) unstable; urgency=medium
+
+  * Copy a book when neither side has a last page.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Fri, 02 Oct 2026 06:51:52 +0100
+
 readomatic (1.2.9-1) unstable; urgency=medium
 
   * Keep a PocketBook CFI when cpage is 0.
