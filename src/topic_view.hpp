@@ -53,10 +53,17 @@ class TopicView : public Gtk::TextView {
   sigc::signal<void, Glib::ustring> signal_jump_;
   std::map<Glib::RefPtr<Gtk::TextTag>, std::string> link_hrefs_;
   std::vector<Glib::ustring> tag_stack_;
+  int palette_ = 1;
 };
 
 /* Image path under the extracted book. Empty when the file would sit outside it. */
 std::string topic_image_path(const std::string& src, const std::string& base_dir,
                              const std::string& book_root);
+
+/* Link ink. Palette 2 is light gray on near-black; every other palette keeps the dark blue. */
+inline const char* link_foreground(int palette)
+{
+  return palette == 2 ? "#8CB4E8" : "#0B3A96";
+}
 
 }  // namespace readomatic
