@@ -29,6 +29,7 @@ struct LibraryCatalog {
 
   std::vector<std::string> tags_for(const std::string& rel) const;
   void set_tags(const std::string& rel, const std::vector<std::string>& tags);
+  void forget(const std::string& rel);
 };
 
 bool is_ebook_name(const std::string& name);

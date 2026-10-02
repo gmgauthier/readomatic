@@ -744,6 +744,7 @@ void LibraryWindow::on_add_books()
 void LibraryWindow::on_delete_books()
 {
   auto files = left_->ticked();
+  auto rels = left_->ticked_rels();
   if (files.empty()) {
     set_status("Tick a book to delete.");
     return;
@@ -755,13 +756,16 @@ void LibraryWindow::on_delete_books()
     return;
   auto cat = LibraryCatalog::load(left_->current() ? left_->current()->get_path() : "");
   int n = 0;
-  for (const auto& f : files) {
+  for (size_t i = 0; i < files.size(); ++i) {
+    const auto& f = files[i];
     const std::string path = f->get_path();
     try {
       const std::string lr = lastread_path(path);
       if (Glib::file_test(lr, Glib::FILE_TEST_EXISTS))
         Gio::File::create_for_path(lr)->remove();
       f->remove();
+      if (i < rels.size())
+        cat.forget(rels[i]);
       ++n;
     } catch (const Glib::Error& e) {
       set_status(e.what());
