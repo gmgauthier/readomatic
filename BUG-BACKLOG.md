@@ -2,19 +2,11 @@
 
 Reviewed 2026-10-01 against the 1.2.0 sources.
 
-`meson test` runs `tests/test_place.cpp` (`place`). It checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page."
+`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, and sidecar save/load when an href is present. It does not treat a `pbr`-only sidecar as absent, and it does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load.
 
 Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE_NODOTDOT`). The holes below are the path used after extract.
 
 ## Open
-
-### A document href can be read from outside the book cache
-
-- Severity: security
-- Confidence: high
-- Where: `src/book.cpp:793`, `src/book.cpp:807`
-- Trigger: Open an EPUB whose spine or link href is `../../../../etc/passwd`, or whose zip contains a symlink to an outside regular file and a spine href of that name.
-- Outcome: `resolve` joins a relative href to `opf_dir_` and only calls `lexically_normal()`. It does not require the result to stay under `extract_dir_`. `load_document` then opens that path. `Glib::file_test` follows a symlink and reports it regular, so a link left in the extract tree is read too. An absolute href is prefixed with the extract directory and stays inside.
 
 ### Topic images are not confined to the book
 
@@ -122,4 +114,13 @@ Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE
 
 ## Closed
 
-None.
+### A document href can be read from outside the book cache
+
+- Severity: security
+- Confidence: high
+- Where: `src/book.cpp` `resolve`, `load_document`
+- Trigger: Open an EPUB whose spine or link href is `../../../../etc/passwd`, or whose zip contains a symlink to an outside regular file and a spine href of that name.
+- Outcome: `resolve` joins a relative href to `opf_dir_` and only calls `lexically_normal()`. It does not require the result to stay under `extract_dir_`. `load_document` then opens that path. `Glib::file_test` follows a symlink and reports it regular, so a link left in the extract tree is read too. An absolute href is prefixed with the extract directory and stays inside.
+- Fixed in v1.2.2: A resolved path has to stay under the extracted book, after symlinks are followed. A link to a file outside that directory is not opened. A chapter in the book, and a parent path that stays in the book, still load.
+
+
