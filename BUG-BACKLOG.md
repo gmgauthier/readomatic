@@ -2,19 +2,11 @@
 
 Reviewed 2026-10-01 against the 1.2.0 sources.
 
-`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, sidecar save/load, and that a PocketBook CFI stored with `cpage` 0 reloads as a position, from the sidecar and from `explorer-3.db`. It does not treat two empty positions as "the same last page." `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once. `open` checks that a failed open keeps its reason: not a zip, not a MOBI, a missing or unreadable container, a missing OPF, and an empty spine. A later successful open clears that reason. `status` checks that a long title, including one that contains an em dash, keeps the full `N of M` suffix. `spine` checks that `recovered`, `coverage`, `unwrapping`, `titlepage-notes`, and a chapter that mentions `coverpage` stay reachable, while `wrap0000`, `cover`, `titlepage`, and an empty document stay skipped. `pages` checks that a leading `wrap0000` is left out of `N of M`, so the first readable chapter is `1 of 2`.
+`meson test` runs `tests/test_place.cpp` (`place`) and `tests/test_confine.cpp` (`confine`). `place` checks history dedup, canonical last-read, sidecar save/load, and that a PocketBook CFI stored with `cpage` 0 reloads as a position, from the sidecar and from `explorer-3.db`. It checks that two unread books are not the same last page, while two saved places that match still are. `confine` checks that a relative href which leaves the cache is not opened, that a symlink to an outside file is not opened, that an absolute href stays under the cache, and that a chapter and an in-book parent path still load. `image` checks that a topic image stays under the extracted book, that a leading slash and a symlink to an outside file do not leave it, and that an image written beside the chapter still resolves. `links` checks that a content link in a subdirectory resolves beside that chapter, that an OPF-relative spine href still resolves, and that a percent-encoded manifest href opens the decoded zip entry. An encoded `..` does not leave the book. `%2520` is decoded once. `open` checks that a failed open keeps its reason: not a zip, not a MOBI, a missing or unreadable container, a missing OPF, and an empty spine. A later successful open clears that reason. `status` checks that a long title, including one that contains an em dash, keeps the full `N of M` suffix. `spine` checks that `recovered`, `coverage`, `unwrapping`, `titlepage-notes`, and a chapter that mentions `coverpage` stay reachable, while `wrap0000`, `cover`, `titlepage`, and an empty document stay skipped. `pages` checks that a leading `wrap0000` is left out of `N of M`, so the first readable chapter is `1 of 2`.
 
 Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE_NODOTDOT`). The holes below are the path used after extract.
 
 ## Open
-
-### Transfer treats "no position" as "same last page"
-
-- Severity: incorrect
-- Confidence: high
-- Where: `src/library_window.cpp:1109`
-- Trigger: The destination file already exists, and neither side has a real reading position.
-- Outcome: Both canonical strings are empty, so they compare equal. The file is not overwritten. Status says "Skipped … (same last page)" for two books that have no last page. A replaced EPUB with the same filename stays stale.
 
 ### Find counts matches in squeezed text, then highlights the widget
 
@@ -57,6 +49,15 @@ Zip entry names containing `..` are rejected on extract (`ARCHIVE_EXTRACT_SECURE
 - Outcome: `resolve_lastread` is called with `&settings_` on `copy_thread_`. Highlight, bookmark, and `persist` mutate `settings_.books` on the UI thread. No mutex covers that map. The data race can crash or corrupt the in-memory bookmark and highlight map.
 
 ## Closed
+
+### Transfer treats "no position" as "same last page"
+
+- Severity: incorrect
+- Confidence: high
+- Where: `src/library_window.cpp` `run_copy`, `src/lastread.cpp` `same_last_page`
+- Trigger: The destination file already exists, and neither side has a real reading position.
+- Outcome: Both canonical strings are empty, so they compare equal. The file is not overwritten. Status says "Skipped … (same last page)" for two books that have no last page. A replaced EPUB with the same filename stays stale.
+- Fixed in v1.2.10: A transfer skips only when both sides have a saved place and that place matches. Two unread books are copied. Two matching places, including a CFI with `cpage` 0, still skip.
 
 ### A PocketBook position with cpage 0 is dropped on reload
 

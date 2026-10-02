@@ -143,5 +143,58 @@ int main()
     std::filesystem::remove_all(dir);
   }
 
+  {
+    readomatic::LastRead unread_a;
+    readomatic::LastRead unread_b;
+    CHECK(readomatic::canonical_lastread(unread_a).empty());
+    CHECK(readomatic::canonical_lastread(unread_b).empty());
+    CHECK(!readomatic::same_last_page(unread_a, unread_b));
+
+    readomatic::LastRead page;
+    page.present = true;
+    page.href = "ch.xhtml";
+    page.fragment = "p";
+    page.scroll = 0.25;
+    readomatic::LastRead twin = page;
+    CHECK(readomatic::same_last_page(page, twin));
+    readomatic::LastRead other = page;
+    other.href = "ch2.xhtml";
+    CHECK(!readomatic::same_last_page(page, other));
+    CHECK(!readomatic::same_last_page(page, unread_a));
+
+    readomatic::LastRead cfi;
+    cfi.present = true;
+    cfi.pbr = "epubcfi(/6/4!/4)";
+    cfi.cpage = 0;
+    readomatic::LastRead cfi_twin = cfi;
+    CHECK(readomatic::same_last_page(cfi, cfi_twin));
+    CHECK(!readomatic::same_last_page(cfi, unread_a));
+
+    const std::string dir =
+        "/tmp/readomatic-transfer-" + std::to_string(static_cast<long long>(getpid()));
+    mkdir(dir.c_str(), 0700);
+    const std::string src = dir + "/story.epub";
+    const std::string dest = dir + "/story-copy.epub";
+    std::ofstream(src) << "src";
+    std::ofstream(dest) << "old";
+    const readomatic::LastRead src_pos = readomatic::resolve_lastread(src, nullptr, "");
+    const readomatic::LastRead dest_pos = readomatic::resolve_lastread(dest, nullptr, "");
+    CHECK(!src_pos.present);
+    CHECK(!dest_pos.present);
+    CHECK(!readomatic::same_last_page(src_pos, dest_pos));
+
+    readomatic::LastRead saved = page;
+    readomatic::save_lastread(src, saved);
+    readomatic::save_lastread(dest, saved);
+    CHECK(readomatic::same_last_page(readomatic::load_lastread(src),
+                                     readomatic::load_lastread(dest)));
+    saved.href = "other.xhtml";
+    readomatic::save_lastread(dest, saved);
+    CHECK(!readomatic::same_last_page(readomatic::load_lastread(src),
+                                      readomatic::load_lastread(dest)));
+
+    std::filesystem::remove_all(dir);
+  }
+
   return suite_test::done("place");
 }

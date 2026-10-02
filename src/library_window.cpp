@@ -1106,7 +1106,7 @@ void LibraryWindow::run_copy()
       const LastRead dest_pos =
           resolve_lastread(dest_path, job_src_is_library_ ? nullptr : &settings_,
                            job_src_is_library_ ? job_dest_root_ : std::string());
-      if (canonical_lastread(src_pos) == canonical_lastread(dest_pos)) {
+      if (same_last_page(src_pos, dest_pos)) {
         ++skipped;
         std::lock_guard<std::mutex> lock(mu_);
         progress_text_ = "Skipped " + Glib::ustring(name) + " (same last page)";
