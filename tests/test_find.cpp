@@ -122,5 +122,23 @@ int main()
     CHECK(hit.excerpt.find("secret") == std::string::npos);
   CHECK(book.search("secret", 10).empty());
 
+  size_t b = 0;
+  size_t e = 0;
+  const std::string triple = "hello   world once";
+  CHECK(readomatic::find_squeezed_occurrence(triple, "hello world", 0, b, e));
+  CHECK(triple.substr(b, e - b) == "hello   world");
+  const std::string nbsp = std::string("hello") + "\xC2\xA0" + "world";
+  CHECK(readomatic::find_squeezed_occurrence(nbsp, "hello world", 0, b, e));
+  CHECK(nbsp.substr(b, e - b) == nbsp);
+  const std::string both = "hello   world and hello world";
+  CHECK(readomatic::find_squeezed_occurrence(both, "hello world", 0, b, e));
+  CHECK(both.substr(b, e - b) == "hello   world");
+  CHECK(readomatic::find_squeezed_occurrence(both, "hello world", 1, b, e));
+  CHECK(both.substr(b, e - b) == "hello world");
+  CHECK(!readomatic::find_squeezed_occurrence("hello\nworld", "hello world", 0, b, e));
+  const std::string shaped = "Hello   World";
+  CHECK(readomatic::find_squeezed_occurrence(shaped, "hello world", 0, b, e));
+  CHECK(shaped.substr(b, e - b) == shaped);
+
   return suite_test::done("find");
 }

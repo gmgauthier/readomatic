@@ -38,6 +38,7 @@ executable(
   'src/main_window.cpp',
   'src/about_dialog.cpp',
   'src/book.cpp',
+  'src/find_span.cpp',
   'src/topic_view.cpp',
   'src/settings.cpp',
   'src/font_dialog.cpp',
@@ -96,6 +97,7 @@ test('confine', readomatic_confine_tests)
 readomatic_image_tests = executable(
   'readomatic-image-tests',
   'tests/test_image.cpp',
+  'src/find_span.cpp',
   'src/topic_view.cpp',
   'src/settings.cpp',
   include_directories: inc,
@@ -152,6 +154,7 @@ readomatic_find_tests = executable(
   'readomatic-find-tests',
   'tests/test_find.cpp',
   'src/book.cpp',
+  'src/find_span.cpp',
   include_directories: inc,
   dependencies: [gtkmm, libarchive, libxml, libmobi],
 )
