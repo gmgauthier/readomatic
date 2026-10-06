@@ -1,3 +1,9 @@
+readomatic (1.2.18-1) unstable; urgency=medium
+
+  * An MTP book keeps a last-read without a local path.
+
+ -- Greg Gauthier <gmgauthier@protonmail.com>  Tue, 06 Oct 2026 22:30:13 +0100
+
 readomatic (1.2.17-1) unstable; urgency=medium
 
   * A topic image name is percent-decoded once.

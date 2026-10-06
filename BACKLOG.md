@@ -1,6 +1,6 @@
 # Read-O-Matic backlog
 
-Current release: **v1.2.17**. Last updated: 2026-10-06.
+Current release: **v1.2.18**. Last updated: 2026-10-06.
 
 WinHelp 4 / OS/2 VIEW chrome; payload is EPUB 2/3 and MOBI/AZW/AZW3. Binary `readomatic`. Suite catalog: `lcos-projects/PRODUCT-BACKLOG.md`. Plan: [DEVELOPMENT.md](DEVELOPMENT.md). How to land work: [DEVELOPMENT.md](DEVELOPMENT.md#process) — `feature/` / `fix/` branches, PRs to `master`, lint gate, semver on shipped PRs.
 
@@ -25,6 +25,8 @@ None.
 - Foliate / Okular re-theme
 
 ## Shipped
+
+**v1.2.18** — An MTP book keeps a last-read without a local path.
 
 **v1.2.17** — A topic image name is percent-decoded once.
 
