@@ -9,7 +9,7 @@ Four ways to get a binary, in the order LCOS cares about:
 | **AppImage** | Fallback for distros that do not install `.deb` files. gtkmm only; no codec bundle. Published on the GitHub/Gitea release. |
 | **Git build** | Developers. See below. |
 
-Version comes from `meson.build` (currently `1.2.16`).
+Version comes from `meson.build` (currently `1.2.17`).
 
 ## Runtime needs
 
@@ -32,14 +32,14 @@ sudo apt install libgtkmm-3.0-1t64 libarchive13 libxml2 fontconfig libmobi0t64
 From a release `.deb`:
 
 ```
-sudo apt install ./dist/readomatic_1.2.16-1_amd64.deb
+sudo apt install ./dist/readomatic_1.2.17-1_amd64.deb
 ```
 
 Or, from this tree:
 
 ```
 ./scripts/release.sh deb
-sudo apt install ./dist/readomatic_1.2.16-1_amd64.deb
+sudo apt install ./dist/readomatic_1.2.17-1_amd64.deb
 ```
 
 That installs:
@@ -59,8 +59,8 @@ Uninstall: `sudo apt remove readomatic`.
 `meson dist` produces `build/meson-dist/readomatic-VERSION.tar.xz` (demo EPUBs under `data/samples/` are git-only, not in the tarball).
 
 ```
-tar -xf readomatic-1.2.16.tar.xz
-cd readomatic-1.2.16
+tar -xf readomatic-1.2.17.tar.xz
+cd readomatic-1.2.17
 sudo apt install build-essential meson ninja-build pkg-config \
   libgtkmm-3.0-dev libarchive-dev libxml2-dev libfontconfig1-dev libmobi-dev
 meson setup build --prefix=/usr
