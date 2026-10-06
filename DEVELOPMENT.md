@@ -7,9 +7,9 @@ License: The Unlicense (`UNLICENSE`)
 Binary: `readomatic`  
 Repos: https://gitea.scriptorium/gmgauthier/readomatic (origin), https://github.com/gmgauthier/readomatic
 
-## Status (2026-10-02)
+## Status (2026-10-06)
 
-**v1.2.15.** A transfer reads a copy of the book map. Deleting a book drops its catalog tags. The dark palette recolours links. A file outside the spine becomes the current topic. A find hit stays inside one paragraph. Two books with no last page are still copied. A PocketBook CFI with cpage 0 reloads as a position. N of M counts chapters Next can reach. Spine names are skipped only for cover, titlepage, and wrap plus digits. A long title keeps its page numbers. A failed open keeps its reason. A content link resolves from its chapter and is percent-decoded once. A topic image stays inside the extracted book. A document href stays inside the extracted book. Bookmarks dialog (Jump / Delete) and restore scroll. Highlighter from 1.1.0. Headless test suite and BUG-BACKLOG.md. Tags through `v1.2.15`. Samples stay git-only. Later: Contents tree lines.
+**v1.2.16.** A squeezed find hit marks the original span. **v1.2.15.** A transfer reads a copy of the book map. Deleting a book drops its catalog tags. The dark palette recolours links. A file outside the spine becomes the current topic. A find hit stays inside one paragraph. Two books with no last page are still copied. A PocketBook CFI with cpage 0 reloads as a position. N of M counts chapters Next can reach. Spine names are skipped only for cover, titlepage, and wrap plus digits. A long title keeps its page numbers. A failed open keeps its reason. A content link resolves from its chapter and is percent-decoded once. A topic image stays inside the extracted book. A document href stays inside the extracted book. Bookmarks dialog (Jump / Delete) and restore scroll. Highlighter from 1.1.0. Headless test suite and BUG-BACKLOG.md. Tags through `v1.2.16`. Samples stay git-only. Later: Contents tree lines.
 
 ## 1. Locked decisions
 
