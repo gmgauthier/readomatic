@@ -2,6 +2,7 @@
 
 #include "lastread.hpp"
 
+#include <glib.h>
 #include <glibmm.h>
 
 #include <cstdlib>
@@ -31,11 +32,38 @@ std::string sql_escape(const std::string& s)
   return out;
 }
 
+bool remote_book_uri(const std::string& loc)
+{
+  const auto sep = loc.find("://");
+  if (sep == std::string::npos || sep == 0)
+    return false;
+  std::string scheme = loc.substr(0, sep);
+  for (char& c : scheme) {
+    if (c >= 'A' && c <= 'Z')
+      c = static_cast<char>(c - 'A' + 'a');
+  }
+  return scheme == "mtp" || scheme == "mtpfs" || scheme == "gphoto2";
+}
+
 }  // namespace
+
+std::string book_location(const std::string& path, const std::string& uri)
+{
+  if (!path.empty())
+    return path;
+  return uri;
+}
 
 std::string lastread_path(const std::string& book_path)
 {
-  return book_path + ".lastread";
+  if (!remote_book_uri(book_path))
+    return book_path + ".lastread";
+  gchar* hex = g_compute_checksum_for_string(G_CHECKSUM_SHA256, book_path.c_str(),
+                                             static_cast<gssize>(book_path.size()));
+  const std::string hash = hex ? std::string(hex) : std::string();
+  g_free(hex);
+  return Glib::build_filename(Glib::get_user_cache_dir(), "readomatic", "lastread",
+                              hash + ".lastread");
 }
 
 std::string canonical_lastread(const LastRead& pos)
@@ -97,6 +125,9 @@ void save_lastread(const std::string& book_path, const LastRead& pos)
 {
   if (book_path.empty())
     return;
+  const std::string path = lastread_path(book_path);
+  if (remote_book_uri(book_path))
+    g_mkdir_with_parents(Glib::path_get_dirname(path).c_str(), 0700);
   Glib::KeyFile kf;
   kf.set_string("position", "href", pos.href);
   kf.set_string("position", "fragment", pos.fragment);
@@ -105,7 +136,7 @@ void save_lastread(const std::string& book_path, const LastRead& pos)
   kf.set_integer("position", "cpage", pos.cpage);
   kf.set_integer("position", "npage", pos.npage);
   try {
-    kf.save_to_file(lastread_path(book_path));
+    kf.save_to_file(path);
   } catch (const Glib::Error&) {
   }
 }

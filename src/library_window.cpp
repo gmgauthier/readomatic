@@ -992,7 +992,7 @@ void LibraryWindow::on_device_changed()
   }
   auto root = Gio::File::create_for_uri(id.raw());
   right_->set_ceiling(root);
-  right_->set_device_root(root->get_path());
+  right_->set_device_root(book_location(root->get_path(), root->get_uri()));
   auto start = root;
   if (!settings_.device_dir.empty() && settings_.device_uri == id.raw()) {
     auto last = Gio::File::create_for_uri(settings_.device_dir);
@@ -1104,8 +1104,8 @@ void LibraryWindow::run_copy(const Settings& books)
     if (!is_ebook_name(name))
       return;
 
-    const std::string src_path = src->get_path();
-    const std::string dest_path = dest->get_path();
+    const std::string src_path = book_location(src->get_path(), src->get_uri());
+    const std::string dest_path = book_location(dest->get_path(), dest->get_uri());
     const LastRead src_pos = resolve_lastread(src_path, job_src_is_library_ ? &books : nullptr,
                                               job_src_is_library_ ? std::string() : job_src_root_);
     if (dest->query_exists(cancellable_)) {
