@@ -144,6 +144,35 @@ inline std::string off_spine_status(const std::string& title, const std::string&
   return title + " — " + href;
 }
 
+// One pass. '+' stays '+'. '%2520' stays '%20'.
+inline std::string percent_decode(const std::string& in)
+{
+  auto hex = [](char c) -> int {
+    if (c >= '0' && c <= '9')
+      return c - '0';
+    if (c >= 'a' && c <= 'f')
+      return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+      return c - 'A' + 10;
+    return -1;
+  };
+  std::string out;
+  out.reserve(in.size());
+  for (size_t i = 0; i < in.size(); ++i) {
+    if (in[i] == '%' && i + 2 < in.size()) {
+      const int hi = hex(in[i + 1]);
+      const int lo = hex(in[i + 2]);
+      if (hi >= 0 && lo >= 0) {
+        out.push_back(static_cast<char>((hi << 4) | lo));
+        i += 2;
+        continue;
+      }
+    }
+    out.push_back(in[i]);
+  }
+  return out;
+}
+
 // Byte range in `shown` of one search hit. `shown` is topic text, with paragraph
 // breaks as newlines. Spaces are squeezed the same way as Book::search.
 bool find_squeezed_occurrence(const std::string& shown, const std::string& query, int occurrence,

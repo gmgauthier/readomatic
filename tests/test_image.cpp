@@ -100,5 +100,27 @@ int main()
   CHECK(symlink(secret.c_str(), leak.c_str()) == 0);
   CHECK(readomatic::topic_image_path("leak.png", base, root).empty());
 
+  const std::string spaced = base + "/my pic.png";
+  write_file(spaced, "SPACED");
+  const std::string decoded = readomatic::topic_image_path("my%20pic.png", base, root);
+  CHECK(read_file(decoded) == "SPACED");
+  CHECK(readomatic::topic_image_path("my%20pic.png#frag", base, root) == decoded);
+
+  const std::string literal = base + "/pic%20.png";
+  write_file(literal, "LITERAL");
+  const std::string once = readomatic::topic_image_path("pic%2520.png", base, root);
+  CHECK(read_file(once) == "LITERAL");
+  CHECK(readomatic::topic_image_path("pic%20.png", base, root) != once);
+
+  const std::string plus = base + "/a+b.png";
+  write_file(plus, "PLUS");
+  CHECK(read_file(readomatic::topic_image_path("a+b.png", base, root)) == "PLUS");
+  CHECK(readomatic::topic_image_path("a%2Bb.png", base, root) ==
+        readomatic::topic_image_path("a+b.png", base, root));
+
+  const std::string encoded_escape = "%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/secret.png";
+  CHECK(readomatic::topic_image_path(encoded_escape, base, root).empty());
+  CHECK(readomatic::topic_image_path("%00pic.png", base, root).empty());
+
   return suite_test::done("image");
 }

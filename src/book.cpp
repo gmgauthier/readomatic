@@ -404,37 +404,6 @@ bool inside_directory(const fs::path& root, const fs::path& candidate)
   return full != candidate.end();
 }
 
-int hex_value(char c)
-{
-  if (c >= '0' && c <= '9')
-    return c - '0';
-  if (c >= 'a' && c <= 'f')
-    return c - 'a' + 10;
-  if (c >= 'A' && c <= 'F')
-    return c - 'A' + 10;
-  return -1;
-}
-
-/* One pass. '+' stays '+'. '%2520' stays '%20'. */
-std::string percent_decode(const std::string& in)
-{
-  std::string out;
-  out.reserve(in.size());
-  for (size_t i = 0; i < in.size(); ++i) {
-    if (in[i] == '%' && i + 2 < in.size()) {
-      const int hi = hex_value(in[i + 1]);
-      const int lo = hex_value(in[i + 2]);
-      if (hi >= 0 && lo >= 0) {
-        out.push_back(static_cast<char>((hi << 4) | lo));
-        i += 2;
-        continue;
-      }
-    }
-    out.push_back(in[i]);
-  }
-  return out;
-}
-
 bool regular_file(const std::string& path)
 {
   if (path.empty())

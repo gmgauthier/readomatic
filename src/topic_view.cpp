@@ -345,7 +345,8 @@ std::string topic_image_path(const std::string& src, const std::string& base_dir
   const auto hash = s.find('#');
   if (hash != std::string::npos)
     s = s.substr(0, hash);
-  if (s.empty() || book_root.empty())
+  s = percent_decode(s);
+  if (s.empty() || s.find('\0') != std::string::npos || book_root.empty())
     return {};
   const fs::path joined = s[0] == '/'        ? fs::path(book_root) / s.substr(1)
                           : base_dir.empty() ? fs::path(book_root) / s
