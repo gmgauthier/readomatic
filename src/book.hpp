@@ -144,4 +144,9 @@ inline std::string off_spine_status(const std::string& title, const std::string&
   return title + " — " + href;
 }
 
+// Byte range in `shown` of one search hit. `shown` is topic text, with paragraph
+// breaks as newlines. Spaces are squeezed the same way as Book::search.
+bool find_squeezed_occurrence(const std::string& shown, const std::string& query, int occurrence,
+                              size_t& begin, size_t& end);
+
 }  // namespace readomatic

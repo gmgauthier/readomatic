@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Unlicense */
 
 #include "topic_view.hpp"
+#include "book.hpp"
 
 #include <libxml/HTMLparser.h>
 #include <glibmm.h>
@@ -524,22 +525,20 @@ bool TopicView::select_match(const Glib::ustring& query, int occurrence)
     buf_->remove_tag(tag, buf_->begin(), buf_->end());
     tag->set_priority(table->get_size() - 1);
   }
-  Gtk::TextIter start = buf_->begin();
-  Gtk::TextIter m0, m1;
-  const auto flags = Gtk::TEXT_SEARCH_VISIBLE_ONLY | Gtk::TEXT_SEARCH_TEXT_ONLY |
-                     Gtk::TEXT_SEARCH_CASE_INSENSITIVE;
-  int n = 0;
-  while (start.forward_search(query, flags, m0, m1)) {
-    if (n == occurrence) {
-      if (tag)
-        buf_->apply_tag(tag, m0, m1);
-      scroll_to(m0, 0.15, 0.0, 0.25);
-      return true;
-    }
-    ++n;
-    start = m1;
-  }
-  return false;
+  const std::string shown = buf_->get_text(false);
+  size_t b = 0;
+  size_t e = 0;
+  if (!find_squeezed_occurrence(shown, query.raw(), occurrence, b, e) || e > shown.size() ||
+      !g_utf8_validate(shown.c_str(), static_cast<gssize>(shown.size()), nullptr))
+    return false;
+  const glong cb = g_utf8_pointer_to_offset(shown.c_str(), shown.c_str() + b);
+  const glong ce = g_utf8_pointer_to_offset(shown.c_str(), shown.c_str() + e);
+  Gtk::TextIter m0 = buf_->get_iter_at_offset(static_cast<int>(cb));
+  Gtk::TextIter m1 = buf_->get_iter_at_offset(static_cast<int>(ce));
+  if (tag)
+    buf_->apply_tag(tag, m0, m1);
+  scroll_to(m0, 0.15, 0.0, 0.25);
+  return true;
 }
 
 bool TopicView::on_button_release_event(GdkEventButton* event)
