@@ -18,6 +18,8 @@ struct LastRead {
   int npage = 0;
 };
 
+// A Gio path when the mount has one. Otherwise the URI (MTP and gphoto2).
+std::string book_location(const std::string& path, const std::string& uri);
 std::string lastread_path(const std::string& book_path);
 std::string canonical_lastread(const LastRead& pos);
 bool same_last_page(const LastRead& a, const LastRead& b);
